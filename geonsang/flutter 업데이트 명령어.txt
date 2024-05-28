@@ -1,0 +1,15 @@
+git checkout 3.19.5
+
+flutter channel stable
+
+flutter upgrade
+
+flutter -v pub get
+
+flutter --version
+
+flutter doctor
+
+아 ㅈ버그
+
+import android.util.Log;
