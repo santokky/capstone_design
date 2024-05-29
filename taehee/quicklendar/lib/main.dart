@@ -59,7 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   final _screens = const [
-    OCRScreen(),
+    OCRScreen(), // 카메라 기능이 포함된 OCRScreen 사용
     CalendarScreen(),
     EventScreen(),
     SettingScreen(),

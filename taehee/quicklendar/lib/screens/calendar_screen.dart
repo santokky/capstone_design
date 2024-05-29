@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'event.dart';
 
@@ -103,13 +102,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
             focusedDay: _focusedDay,
             selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
             calendarFormat: _calendarFormat,
-            startingDayOfWeek: StartingDayOfWeek.sunday,
+            startingDayOfWeek: StartingDayOfWeek.monday,
             onDaySelected: _onDaySelected,
             eventLoader: _getEventsForDay,
             calendarStyle: const CalendarStyle(
-              outsideDaysVisible: true,
-              weekendTextStyle : TextStyle(color: Colors.red,
-              ),
+              outsideDaysVisible: false,
             ),
             onFormatChanged: (format) {
               if (_calendarFormat != format) {
