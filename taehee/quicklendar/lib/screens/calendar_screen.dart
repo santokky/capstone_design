@@ -51,7 +51,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("달력"),
+        backgroundColor: Colors.blueAccent,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: Text('달력'),
+        centerTitle: true,
+        leading: IconButton(icon: Icon(Icons.arrow_back), onPressed: null,),
+        actions: [
+          IconButton(icon: Icon(Icons.search), onPressed: null,),
+          IconButton(icon: Icon(Icons.notifications), onPressed: null,),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -102,11 +111,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
             focusedDay: _focusedDay,
             selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
             calendarFormat: _calendarFormat,
-            startingDayOfWeek: StartingDayOfWeek.monday,
+            startingDayOfWeek: StartingDayOfWeek.sunday,
             onDaySelected: _onDaySelected,
             eventLoader: _getEventsForDay,
             calendarStyle: const CalendarStyle(
-              outsideDaysVisible: false,
+              outsideDaysVisible: true,
+              weekendTextStyle: TextStyle(color: Colors.red), // 주말 텍스트 스타일
+              defaultTextStyle: TextStyle(color: Colors.black), // 기본 텍스트 스타일
+            ),
+            daysOfWeekStyle: DaysOfWeekStyle(
+              weekendStyle: TextStyle(color: Colors.red), // 주말 요일 스타일
+              weekdayStyle: TextStyle(color: Colors.black), // 기본 요일 스타일
             ),
             onFormatChanged: (format) {
               if (_calendarFormat != format) {

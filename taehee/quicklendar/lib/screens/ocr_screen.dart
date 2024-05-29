@@ -30,7 +30,7 @@ class OCRScreenState extends State<OCRScreen> {
       ResolutionPreset.medium,
     );
     _initializeControllerFuture = _controller.initialize();
-    setState(() {}); // Rebuild the widget to reflect the initialized controller
+    setState(() {}); // 초기화된 컨트롤러를 반영하기 위해 위젯을 다시 빌드
   }
 
   @override
@@ -42,7 +42,18 @@ class OCRScreenState extends State<OCRScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('카메라 화면')),
+      appBar: AppBar(
+        backgroundColor: Colors.blueAccent,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: Text('퀵린더'),
+        centerTitle: true,
+        leading: IconButton(icon: Icon(Icons.arrow_back), onPressed: null,),
+        actions: [
+          //IconButton(icon: Icon(Icons.search), onPressed: null,),
+          IconButton(icon: Icon(Icons.notifications), onPressed: null,),
+        ],
+      ),
       body: Column(
         children: [
           FutureBuilder<void>(
@@ -50,7 +61,15 @@ class OCRScreenState extends State<OCRScreen> {
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.done) {
                 // 미리보기
-                return CameraPreview(_controller);
+                return Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(0.0), // 원하는 패딩 값 설정
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Color(0xFF33FF33), width: 3.0), // 초록색 경계선 설정
+                    ),
+                    child: CameraPreview(_controller),
+                  ),
+                );
               } else {
                 return const Center(child: CircularProgressIndicator());
               }
@@ -82,6 +101,7 @@ class OCRScreenState extends State<OCRScreen> {
         },
         child: const Icon(Icons.camera_alt),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 }
