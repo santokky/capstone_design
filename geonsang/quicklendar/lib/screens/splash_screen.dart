@@ -14,8 +14,8 @@ class _SplashScreenState extends State<SplashScreen> {
 
   void initState() {
     super.initState();
-    // 5초 후에 홈 화면으로 전환
-    Timer(const Duration(seconds: 2), () {
+    // 1초 후에 홈 화면으로 전환
+    Timer(const Duration(seconds: 1), () {
       Navigator.pushReplacementNamed(context, '/home');
     });
   }
