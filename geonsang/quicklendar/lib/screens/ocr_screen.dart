@@ -1,20 +1,3 @@
-<<<<<<< HEAD
-import 'package:flutter/material.dart';
-
-class OCRScreen extends StatelessWidget {
-  const OCRScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.camera_alt, size: 100, color: Colors.purple),
-          Text('퀵린더', style: TextStyle(fontSize: 30)),
-        ],
-      ),
-=======
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -139,7 +122,6 @@ class DisplayPictureScreen extends StatelessWidget {
             ? Image.network(imagePath) // 웹에서는 네트워크 이미지를 사용
             : Image.file(File(imagePath)), // 모바일에서는 파일 이미지를 사용
       ),
->>>>>>> 1c5d40f53d1857d5ba306019732267b54956a701
     );
   }
 }

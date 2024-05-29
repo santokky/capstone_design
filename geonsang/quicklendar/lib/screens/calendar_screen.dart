@@ -1,8 +1,4 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
-import 'package:intl/intl.dart';
-=======
->>>>>>> 1c5d40f53d1857d5ba306019732267b54956a701
 import 'package:table_calendar/table_calendar.dart';
 import 'event.dart';
 
@@ -55,9 +51,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-<<<<<<< HEAD
-        title: Text("달력"),
-=======
         backgroundColor: Colors.blueAccent,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -68,7 +61,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
           IconButton(icon: Icon(Icons.search), onPressed: null,),
           IconButton(icon: Icon(Icons.notifications), onPressed: null,),
         ],
->>>>>>> 1c5d40f53d1857d5ba306019732267b54956a701
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -124,17 +116,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
             eventLoader: _getEventsForDay,
             calendarStyle: const CalendarStyle(
               outsideDaysVisible: true,
-<<<<<<< HEAD
-              weekendTextStyle : TextStyle(color: Colors.red,
-              ),
-=======
               weekendTextStyle: TextStyle(color: Colors.red), // 주말 텍스트 스타일
               defaultTextStyle: TextStyle(color: Colors.black), // 기본 텍스트 스타일
             ),
             daysOfWeekStyle: DaysOfWeekStyle(
               weekendStyle: TextStyle(color: Colors.red), // 주말 요일 스타일
               weekdayStyle: TextStyle(color: Colors.black), // 기본 요일 스타일
->>>>>>> 1c5d40f53d1857d5ba306019732267b54956a701
             ),
             onFormatChanged: (format) {
               if (_calendarFormat != format) {
@@ -175,8 +162,4 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
     );
   }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 1c5d40f53d1857d5ba306019732267b54956a701

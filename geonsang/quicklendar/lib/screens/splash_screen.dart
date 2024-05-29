@@ -11,10 +11,7 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   @override
-<<<<<<< HEAD
-=======
 
->>>>>>> 1c5d40f53d1857d5ba306019732267b54956a701
   void initState() {
     super.initState();
     // 5초 후에 홈 화면으로 전환
