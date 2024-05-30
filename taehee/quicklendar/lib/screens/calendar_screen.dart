@@ -51,16 +51,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blueAccent,
-        foregroundColor: Colors.white,
-        elevation: 0,
         title: Text('달력'),
-        centerTitle: true,
-        leading: IconButton(icon: Icon(Icons.arrow_back), onPressed: null,),
-        actions: [
-          IconButton(icon: Icon(Icons.search), onPressed: null,),
-          IconButton(icon: Icon(Icons.notifications), onPressed: null,),
-        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -93,14 +84,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         Navigator.of(context).pop();
                       }
                     },
-                    child: Text("Submit"),
+                    child: Text("추가"),
                   )
                 ],
               );
             },
           );
         },
-        child: const Icon(Icons.add),
+        backgroundColor: Colors.blueAccent,
+        child: Icon(Icons.add, color: Colors.white,),
       ),
       body: Column(
         children: [

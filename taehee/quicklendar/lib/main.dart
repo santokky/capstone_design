@@ -17,9 +17,17 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
+      theme: ThemeData(
+        appBarTheme: AppBarTheme(
+          color: Colors.white
+        ),
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: Colors.white,
+        primaryColor: Colors.white,
+      ),
       home: HomeScreen(),
     );
   }
@@ -39,22 +47,22 @@ class _HomeScreenState extends State<HomeScreen> {
     SalomonBottomBarItem(
       icon: const Icon(Icons.camera_alt),
       title: const Text('퀵린더'),
-      selectedColor: Colors.purple,
+      selectedColor: Colors.blueAccent,
     ),
     SalomonBottomBarItem(
       icon: const Icon(Icons.calendar_month),
       title: const Text('달력'),
-      selectedColor: Colors.orange,
+      selectedColor: Colors.blueAccent,
     ),
     SalomonBottomBarItem(
       icon: const Icon(Icons.event_available),
       title: const Text('이벤트'),
-      selectedColor: Colors.pink,
+      selectedColor: Colors.blueAccent,
     ),
     SalomonBottomBarItem(
       icon: const Icon(Icons.settings_applications),
       title: const Text('설정'),
-      selectedColor: Colors.teal,
+      selectedColor: Colors.blueAccent,
     ),
   ];
 
@@ -68,11 +76,105 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.blueAccent,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: Text('퀵린더'),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.search),
+            onPressed: () {
+              // 아이콘을 눌렀을 때 수행할 작업
+            },
+            color: Colors.white,
+          ),
+          IconButton(
+            icon: Icon(Icons.notifications),
+            onPressed: () {
+              // 아이콘을 눌렀을 때 수행할 작업
+            },
+            color: Colors.white,
+          ),
+        ],
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: <Widget>[
+            UserAccountsDrawerHeader(
+              currentAccountPicture: CircleAvatar(
+                backgroundImage: AssetImage('assets/img/splash_demo.png'),
+              ),
+              // otherAccountsPictures: [
+              //   CircleAvatar(
+              //     backgroundImage: AssetImage('assets/profile.png'),
+              //   )
+              // ],
+              accountEmail: Text('hanshin@hs.ac.kr'),
+              accountName: Text('캡디 5팀'),
+              onDetailsPressed: () {
+                print('press details');
+              },
+              decoration: BoxDecoration(
+                color: Colors.blueAccent,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(40),
+                  bottomRight: Radius.circular(40),
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('퀵린더'),
+              onTap: () {
+                setState(() {
+                  _currentIndex = 0;
+                });
+                Navigator.pop(context); // 드로어를 닫습니다.
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.calendar_month),
+              title: const Text('달력'),
+              onTap: () {
+                setState(() {
+                  _currentIndex = 1;
+                });
+                Navigator.pop(context); // 드로어를 닫습니다.
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.event_available),
+              title: const Text('이벤트'),
+              onTap: () {
+                setState(() {
+                  _currentIndex = 2;
+                });
+                Navigator.pop(context); // 드로어를 닫습니다.
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings_applications),
+              title: const Text('설정'),
+              onTap: () {
+                setState(() {
+                  _currentIndex = 3;
+                });
+                Navigator.pop(context); // 드로어를 닫습니다.
+              },
+            ),
+          ],
+        ),
+      ),
+
       backgroundColor: Colors.white,
       body: _screens[_currentIndex],
       bottomNavigationBar: Card(
         elevation: 6,
-        margin: const EdgeInsets.all(16.0),
+        margin: const EdgeInsets.all(8.0),
+        color: Colors.white,
         child: SalomonBottomBar(
           duration: const Duration(seconds: 1),
           items: _items,

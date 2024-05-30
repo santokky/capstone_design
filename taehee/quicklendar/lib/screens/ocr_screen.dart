@@ -42,18 +42,6 @@ class OCRScreenState extends State<OCRScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.blueAccent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Text('퀵린더'),
-        centerTitle: true,
-        leading: IconButton(icon: Icon(Icons.arrow_back), onPressed: null,),
-        actions: [
-          //IconButton(icon: Icon(Icons.search), onPressed: null,),
-          IconButton(icon: Icon(Icons.notifications), onPressed: null,),
-        ],
-      ),
       body: Column(
         children: [
           FutureBuilder<void>(
@@ -100,6 +88,7 @@ class OCRScreenState extends State<OCRScreen> {
           }
         },
         child: const Icon(Icons.camera_alt),
+        backgroundColor: Colors.white70,
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
