@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'event.dart';
+import '../database_helper.dart';
+
+class Event {
+  final String title;
+  final String description;
+
+  Event(this.title, this.description);
+}
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -13,21 +20,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  // Store the events
-  Map<DateTime, List<Event>> events = {};
-  TextEditingController _eventController = TextEditingController();
+  TextEditingController _titleController = TextEditingController();
+  TextEditingController _descriptionController = TextEditingController();
   late final ValueNotifier<List<Event>> _selectedEvents;
+  late Map<DateTime, List<Event>> _events;
+  final DatabaseHelper _dbHelper = DatabaseHelper();
 
   @override
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
-    _selectedEvents = ValueNotifier(_getEventsForDay(_selectedDay!));
+    _selectedEvents = ValueNotifier([]);
+    _events = {};
+    _loadEvents();
   }
 
   @override
   void dispose() {
-    _eventController.dispose();
+    _titleController.dispose();
+    _descriptionController.dispose();
     _selectedEvents.dispose();
     super.dispose();
   }
@@ -37,62 +48,108 @@ class _CalendarScreenState extends State<CalendarScreen> {
       setState(() {
         _selectedDay = selectedDay;
         _focusedDay = focusedDay;
-        _selectedEvents.value = _getEventsForDay(selectedDay);
+        _loadEventsForDay(selectedDay);
       });
     }
   }
 
+  Future<void> _loadEvents() async {
+    final events = await _dbHelper.queryAllEvents();
+    setState(() {
+      _events.clear();
+      for (var event in events) {
+        final date = DateTime.parse(event['date']);
+        if (_events[date] == null) {
+          _events[date] = [];
+        }
+        _events[date]!.add(Event(event['title'], event['description']));
+      }
+    });
+    print("Events loaded: $_events");  // 로그 출력
+  }
+
+  Future<void> _loadEventsForDay(DateTime day) async {
+    final events = await _dbHelper.queryAllEvents();
+    setState(() {
+      _selectedEvents.value = events
+          .where((event) => isSameDay(DateTime.parse(event['date']), day))
+          .map((event) => Event(event['title'], event['description']))
+          .toList();
+    });
+    print("Events for day $day loaded: ${_selectedEvents.value}");  // 로그 출력
+  }
+
+  Future<void> _addEvent() async {
+    if (_titleController.text.isNotEmpty && _descriptionController.text.isNotEmpty) {
+      final event = {
+        'title': _titleController.text,
+        'description': _descriptionController.text,
+        'date': _selectedDay!.toIso8601String(),
+      };
+      await _dbHelper.insertEvent(event);
+      _titleController.clear();
+      _descriptionController.clear();
+      await _loadEvents();
+      await _loadEventsForDay(_selectedDay!);
+      setState(() {});
+      print("Event added successfully");  // 로그 출력
+    } else {
+      print("Title or Description is empty");  // 로그 출력
+    }
+  }
+
   List<Event> _getEventsForDay(DateTime day) {
-    // Retrieve all events for the selected day
-    return events[day] ?? [];
+    return _events[day] ?? [];
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('달력'),
+        title: const Text('달력'),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // Show a dialog for user to input event name
           showDialog(
             context: context,
             builder: (context) {
               return AlertDialog(
                 scrollable: true,
-                title: Text("이벤트명"),
+                title: const Text("이벤트 추가"),
                 content: Padding(
-                  padding: EdgeInsets.all(8),
-                  child: TextField(
-                    controller: _eventController,
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _titleController,
+                        decoration: const InputDecoration(hintText: "이벤트 제목"),
+                      ),
+                      TextField(
+                        controller: _descriptionController,
+                        decoration: const InputDecoration(hintText: "이벤트 내용"),
+                      ),
+                    ],
                   ),
                 ),
                 actions: [
                   ElevatedButton(
-                    onPressed: () {
-                      if (_eventController.text.isNotEmpty) {
-                        setState(() {
-                          if (events[_selectedDay!] != null) {
-                            events[_selectedDay]!.add(Event(_eventController.text));
-                          } else {
-                            events[_selectedDay!] = [Event(_eventController.text)];
-                          }
-                          _eventController.clear();
-                          _selectedEvents.value = _getEventsForDay(_selectedDay!);
-                        });
-                        Navigator.of(context).pop();
-                      }
+                    onPressed: () async {
+                      print("Add button pressed");  // 로그 출력
+                      await _addEvent();
+                      Navigator.of(context).pop();
                     },
-                    child: Text("추가"),
-                  )
+                    child: const Text("추가"),
+                  ),
                 ],
               );
             },
           );
         },
         backgroundColor: Colors.blueAccent,
-        child: Icon(Icons.add, color: Colors.white,),
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+        ),
       ),
       body: Column(
         children: [
@@ -111,7 +168,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               weekendTextStyle: TextStyle(color: Colors.red), // 주말 텍스트 스타일
               defaultTextStyle: TextStyle(color: Colors.black), // 기본 텍스트 스타일
             ),
-            daysOfWeekStyle: DaysOfWeekStyle(
+            daysOfWeekStyle: const DaysOfWeekStyle(
               weekendStyle: TextStyle(color: Colors.red), // 주말 요일 스타일
               weekdayStyle: TextStyle(color: Colors.black), // 기본 요일 스타일
             ),
@@ -126,7 +183,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               _focusedDay = focusedDay;
             },
           ),
-          SizedBox(height: 8.0),
+          const SizedBox(height: 8.0),
           Expanded(
             child: ValueListenableBuilder<List<Event>>(
               valueListenable: _selectedEvents,
@@ -134,22 +191,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 return ListView.builder(
                   itemCount: value.length,
                   itemBuilder: (context, index) {
-                    return Container(
-                      margin: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        border: Border.all(),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: ListTile(
-                        onTap: () => print(""),
-                        title: Text(value[index].title),
-                      ),
+                    return ListTile(
+                      title: Text(value[index].title),
+                      subtitle: Text(value[index].description),
                     );
                   },
                 );
               },
             ),
-          )
+          ),
         ],
       ),
     );

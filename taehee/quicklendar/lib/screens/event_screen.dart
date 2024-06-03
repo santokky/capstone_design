@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../database_helper.dart';
 
 class EventScreen extends StatefulWidget {
   const EventScreen({super.key});
@@ -8,69 +10,85 @@ class EventScreen extends StatefulWidget {
 }
 
 class _EventScreenState extends State<EventScreen> {
-  final List<Todo> _todos = [];
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _searchController = TextEditingController();
-  int _completedCount = 0;
-  String _searchQuery = '';
+  List<Map<String, dynamic>> _events = [];
+  final DatabaseHelper _dbHelper = DatabaseHelper();
+  TextEditingController _searchController = TextEditingController();
+  bool _showProgress = false;
+  List<bool> _checked = [];
 
-  void _addTodo() {
-    setState(() {
-      _todos.add(Todo(
-        title: _titleController.text,
-        description: _descriptionController.text,
-        date: DateTime.now(),
-        isCompleted: false,
-      ));
-      _titleController.clear();
-      _descriptionController.clear();
-    });
-    Navigator.of(context).pop();
+  @override
+  void initState() {
+    super.initState();
+    _loadEvents();
+    _searchController.addListener(_filterEvents);
   }
 
-  void _showAddTodoDialog({Todo? todo, int? index}) {
-    if (todo != null) {
-      _titleController.text = todo.title;
-      _descriptionController.text = todo.description;
-    } else {
-      _titleController.clear();
-      _descriptionController.clear();
-    }
+  Future<void> _loadEvents() async {
+    final events = await _dbHelper.queryAllEvents();
+    setState(() {
+      _events = events;
+      _checked = List<bool>.filled(_events.length, false);
+      _updateProgress();
+    });
+  }
+
+  void _filterEvents() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _events = _events.where((event) {
+        final title = event['title'].toLowerCase();
+        final description = event['description'].toLowerCase();
+        return title.contains(query) || description.contains(query);
+      }).toList();
+    });
+  }
+
+  void _updateProgress() {
+    final checkedCount = _checked.where((element) => element).length;
+    setState(() {
+      _showProgress = checkedCount > 0;
+    });
+  }
+
+  Future<void> _deleteEvent(int id) async {
+    await _dbHelper.deleteEvent(id);
+    await _loadEvents();
+  }
+
+  Future<void> _editEvent(int id, String newTitle, String newDescription) async {
+    await _dbHelper.updateEvent(id, newTitle, newDescription);
+    await _loadEvents();
+  }
+
+  void _showEditDialog(int id, String currentTitle, String currentDescription) {
+    final titleController = TextEditingController(text: currentTitle);
+    final descriptionController = TextEditingController(text: currentDescription);
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          scrollable: true,
-          title: const Text("나의 할일"),
-          content: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _titleController,
-                  decoration: const InputDecoration(hintText: "글 제목"),
-                ),
-                TextField(
-                  controller: _descriptionController,
-                  decoration: const InputDecoration(hintText: "글 내용"),
-                ),
-              ],
-            ),
+          title: const Text('Edit Event'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(hintText: 'Title'),
+              ),
+              TextField(
+                controller: descriptionController,
+                decoration: const InputDecoration(hintText: 'Description'),
+              ),
+            ],
           ),
           actions: [
-            Center(
-              child: ElevatedButton(
-                onPressed: () {
-                  if (todo != null && index != null) {
-                    _editTodo(index);
-                  } else {
-                    _addTodo();
-                  }
-                },
-                child: Text(todo != null ? "수정 하기" : "추가 하기"),
-              ),
+            ElevatedButton(
+              onPressed: () async {
+                await _editEvent(id, titleController.text, descriptionController.text);
+                Navigator.of(context).pop();
+              },
+              child: const Text('Save'),
             ),
           ],
         );
@@ -78,130 +96,81 @@ class _EventScreenState extends State<EventScreen> {
     );
   }
 
-  void _editTodo(int index) {
-    setState(() {
-      _todos[index].title = _titleController.text;
-      _todos[index].description = _descriptionController.text;
-    });
-    Navigator.of(context).pop();
-  }
-
-  void _toggleCompletion(int index) {
-    setState(() {
-      _todos[index].isCompleted = !_todos[index].isCompleted;
-      _completedCount = _todos.where((todo) => todo.isCompleted).length;
-    });
-  }
-
-  void _searchTodos(String query) {
-    setState(() {
-      _searchQuery = query;
-    });
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    double progress = _todos.isEmpty ? 0 : _completedCount / _todos.length;
-    final filteredTodos = _todos.where((todo) {
-      return todo.title.contains(_searchQuery) ||
-          todo.description.contains(_searchQuery);
-    }).toList();
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('이벤트'),
+        title: const Text('이벤트 목록'),
       ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _searchController,
-                  decoration: const InputDecoration(
-                    hintText: "일정 검색",
-                    prefixIcon: Icon(Icons.search),
-                  ),
-                  onChanged: _searchTodos,
-                ),
-                const SizedBox(height: 16),
-                LinearProgressIndicator(
-                  value: progress,
-                  backgroundColor: Colors.grey[300],
-                  valueColor:
-                  const AlwaysStoppedAnimation<Color>(Colors.blueAccent),
-                ),
-              ],
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: const InputDecoration(
+                hintText: '이벤트 검색',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+              ),
             ),
           ),
+          if (_showProgress)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10.0),
+              child: LinearProgressIndicator(color: Colors.blueAccent, value: _checked.where((element) => element).length / _events.length),
+            ),
           Expanded(
-            child: ListView.builder(
-              itemCount: filteredTodos.length,
+            child: _events.isEmpty
+                ? Center(
+              child: Text(
+                '이벤트가 없습니다.',
+                style: TextStyle(fontSize: 24.0),
+              ),
+            )
+                : ListView.builder(
+              itemCount: _events.length,
               itemBuilder: (context, index) {
-                return Card(
-                  margin: const EdgeInsets.symmetric(
-                      vertical: 8.0, horizontal: 16.0),
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.0),
+                final event = _events[index];
+                final date = DateTime.parse(event['date']);
+                final formattedDate = DateFormat.yMMMd().format(date);
+                return ListTile(
+                  leading: Checkbox(
+                    activeColor: Colors.blueAccent,
+                    checkColor: Colors.white,
+                    value: _checked[index],
+                    onChanged: (bool? value) {
+                      setState(() {
+                        _checked[index] = value!;
+                        _updateProgress();
+                      });
+                    },
                   ),
-                  child: ListTile(
-                    leading: Checkbox(
-                      value: filteredTodos[index].isCompleted,
-                      onChanged: (bool? value) {
-                        _toggleCompletion(index);
-                      },
-                    ),
-                    title: Text(
-                      filteredTodos[index].title,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        decoration: filteredTodos[index].isCompleted
-                            ? TextDecoration.lineThrough
-                            : TextDecoration.none,
+                  title: Text(event['title']),
+                  subtitle: Text(event['description']),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(formattedDate),
+                      IconButton(
+                        icon: Icon(Icons.edit, color: Colors.lightGreen),
+                        onPressed: () {
+                          _showEditDialog(event['id'], event['title'], event['description']);
+                        },
                       ),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          filteredTodos[index].description,
-                          style: TextStyle(
-                              color: filteredTodos[index].isCompleted
-                                  ? Colors.grey
-                                  : Colors.black54),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '등록 일시: ${filteredTodos[index].date}',
-                          style: const TextStyle(color: Colors.black45),
-                        ),
-                      ],
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.green),
-                          onPressed: () {
-                            _showAddTodoDialog(
-                                todo: filteredTodos[index], index: index);
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.redAccent),
-                          onPressed: () {
-                            setState(() {
-                              if (filteredTodos[index].isCompleted) {
-                                _completedCount--;
-                              }
-                              _todos.remove(filteredTodos[index]);
-                            });
-                          },
-                        ),
-                      ],
-                    ),
+                      IconButton(
+                        icon: Icon(Icons.delete, color: Colors.redAccent),
+                        onPressed: () async {
+                          await _deleteEvent(event['id']);
+                        },
+                      ),
+                    ],
                   ),
                 );
               },
@@ -209,28 +178,6 @@ class _EventScreenState extends State<EventScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddTodoDialog(),
-        backgroundColor: Colors.blueAccent,
-        child: const Icon(
-          Icons.add,
-          color: Colors.white,
-        ),
-      ),
     );
   }
-}
-
-class Todo {
-  String title;
-  String description;
-  DateTime date;
-  bool isCompleted;
-
-  Todo({
-    required this.title,
-    required this.description,
-    required this.date,
-    this.isCompleted = false,
-  });
 }
