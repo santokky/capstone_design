@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:quicklendar/main.dart'; // MyApp 클래스 임포트
 
 class SettingScreen extends StatefulWidget {
   const SettingScreen({Key? key}) : super(key: key);
@@ -54,8 +55,8 @@ class _SettingScreenState extends State<SettingScreen> {
             },
           ),
           ListTile(
-            title: const Text('이미지 분석 설정'),
-            subtitle: const Text('OCR 언어 설정'),
+            title: const Text('앱 언어 설정'),
+            subtitle: const Text('앱 인터페이스 언어 설정'),
             onTap: () {
               _showLanguageDialog();
             },
@@ -109,11 +110,14 @@ class _SettingScreenState extends State<SettingScreen> {
           content: DropdownButton<String>(
             value: _selectedLanguage,
             onChanged: (String? newValue) {
-              setState(() {
-                _selectedLanguage = newValue!;
-              });
-              _saveSettings();
-              Navigator.of(context).pop();
+              if (newValue != null) {
+                setState(() {
+                  _selectedLanguage = newValue;
+                });
+                _saveSettings();
+                _changeLanguage(newValue);
+                Navigator.of(context).pop();
+              }
             },
             items: <String>['한국어', 'English']
                 .map<DropdownMenuItem<String>>((String value) {
@@ -126,6 +130,17 @@ class _SettingScreenState extends State<SettingScreen> {
         );
       },
     );
+  }
+
+  void _changeLanguage(String language) {
+    // 언어 변경 로직을 추가합니다.
+    if (language == '한국어') {
+      // 한국어로 변경
+      MyApp.setLocale(context, const Locale('ko', 'KR'));
+    } else {
+      // 영어로 변경
+      MyApp.setLocale(context, const Locale('en', 'US'));
+    }
   }
 
   void _showCalendarSettingsDialog() {

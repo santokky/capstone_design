@@ -1,34 +1,76 @@
 import 'package:flutter/material.dart';
-import 'package:intl/date_symbol_data_local.dart'; // 파일 경로 수정
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:salomon_bottom_bar/salomon_bottom_bar.dart';
 import 'screens/ocr_screen.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/event_screen.dart';
 import 'screens/setting_screen.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // Flutter가 비동기 작업을 완료할 때까지 기다리도록 설정
-  await initializeDateFormatting('ko_KR', null); // 두 번째 인자를 null로 수정
-  runApp(const MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('ko_KR', null);
+  runApp(MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  static void setLocale(BuildContext context, Locale newLocale) {
+    _MyAppState? state = context.findAncestorStateOfType<_MyAppState>();
+    state?.setLocale(newLocale);
+  }
+
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  Locale? _locale;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLocale();
+  }
+
+  Future<void> _loadLocale() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? languageCode = prefs.getString('selectedLanguage') ?? 'ko';
+    setState(() {
+      _locale = Locale(languageCode, '');
+    });
+  }
+
+  void setLocale(Locale locale) {
+    setState(() {
+      _locale = locale;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      locale: _locale,
+      supportedLocales: const [
+        Locale('en', 'US'),
+        Locale('ko', 'KR'),
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       theme: ThemeData(
-        appBarTheme: AppBarTheme(
-            color: Colors.white
-        ),
+        appBarTheme: AppBarTheme(color: Colors.white),
         brightness: Brightness.light,
         scaffoldBackgroundColor: Colors.white,
         primaryColor: Colors.white,
       ),
-      home: HomeScreen(),
+      home: const HomeScreen(),
     );
   }
 }
@@ -80,18 +122,18 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.blueAccent,
         foregroundColor: Colors.white,
         elevation: 0,
-        title: Text('퀵린더'),
+        title: const Text('퀵린더'),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(Icons.search),
+            icon: const Icon(Icons.search),
             onPressed: () {
               // 아이콘을 눌렀을 때 수행할 작업
             },
             color: Colors.white,
           ),
           IconButton(
-            icon: Icon(Icons.notifications),
+            icon: const Icon(Icons.notifications),
             onPressed: () {
               // 아이콘을 눌렀을 때 수행할 작업
             },
@@ -104,20 +146,15 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: EdgeInsets.zero,
           children: <Widget>[
             UserAccountsDrawerHeader(
-              currentAccountPicture: CircleAvatar(
+              currentAccountPicture: const CircleAvatar(
                 backgroundImage: AssetImage('assets/img/splash_demo.png'),
               ),
-              // otherAccountsPictures: [
-              //   CircleAvatar(
-              //     backgroundImage: AssetImage('assets/profile.png'),
-              //   )
-              // ],
-              accountEmail: Text('hanshin@hs.ac.kr'),
-              accountName: Text('캡디 5팀'),
+              accountEmail: const Text('hanshin@hs.ac.kr'),
+              accountName: const Text('캡디 5팀'),
               onDetailsPressed: () {
                 print('press details');
               },
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.blueAccent,
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(40),
@@ -168,7 +205,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-
       backgroundColor: Colors.white,
       body: _screens[_currentIndex],
       bottomNavigationBar: Card(
