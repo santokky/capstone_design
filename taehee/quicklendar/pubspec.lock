@@ -374,6 +374,7 @@ packages:
     source: hosted
     version: "2.1.8"
 <<<<<<< HEAD
+<<<<<<< HEAD
   process:
     dependency: transitive
     description:
@@ -390,6 +391,8 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.1.2"
+=======
+>>>>>>> parent of 8fb5c42 (로켈DB를 사용해 캘린더에서 일정 입력가능,)
 =======
 >>>>>>> parent of 8fb5c42 (로켈DB를 사용해 캘린더에서 일정 입력가능,)
   salomon_bottom_bar:

@@ -121,6 +121,9 @@ class _MyAppState extends State<MyApp> {
 =======
         appBarTheme: AppBarTheme(
           color: Colors.white
+<<<<<<< HEAD
+>>>>>>> parent of 8fb5c42 (로켈DB를 사용해 캘린더에서 일정 입력가능,)
+=======
 >>>>>>> parent of 8fb5c42 (로켈DB를 사용해 캘린더에서 일정 입력가능,)
         ),
         brightness: Brightness.light,

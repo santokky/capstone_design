@@ -39,6 +39,7 @@ dependencies:
   shared_preferences: ^2.0.0
   settings_ui: ^2.0.2
 <<<<<<< HEAD
+<<<<<<< HEAD
   provider: ^6.1.2
   sqflite: ^2.3.3+1
   path: ^1.9.0
@@ -46,6 +47,8 @@ dependencies:
   flutter_local_notifications: ^9.5.2
   flutter_localizations:
     sdk: flutter
+=======
+>>>>>>> parent of 8fb5c42 (로켈DB를 사용해 캘린더에서 일정 입력가능,)
 =======
 >>>>>>> parent of 8fb5c42 (로켈DB를 사용해 캘린더에서 일정 입력가능,)
 
