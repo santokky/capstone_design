@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:salomon_bottom_bar/salomon_bottom_bar.dart';
 import 'screens/ocr_screen.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/event_screen.dart';
 import 'screens/setting_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'l10n/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('ko_KR', null);
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatefulWidget {
@@ -24,78 +22,31 @@ class MyApp extends StatefulWidget {
     state?.setLocale(newLocale);
   }
 
-  static void setNotificationsEnabled(BuildContext context, bool enabled) {
-    _MyAppState? state = context.findAncestorStateOfType<_MyAppState>();
-    state?.setNotificationsEnabled(enabled);
-  }
-
   @override
   _MyAppState createState() => _MyAppState();
 }
 
 class _MyAppState extends State<MyApp> {
   Locale? _locale;
-  bool _notificationsEnabled = true;
-  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
   @override
   void initState() {
     super.initState();
-    _loadSettings();
-    _initializeNotifications();
+    _loadLocale();
   }
 
-  Future<void> _loadSettings() async {
+  Future<void> _loadLocale() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? languageCode = prefs.getString('selectedLanguage') ?? 'ko';
-    bool? notificationsEnabled = prefs.getBool('notificationsEnabled') ?? true;
     setState(() {
       _locale = Locale(languageCode, '');
-      _notificationsEnabled = notificationsEnabled;
     });
-  }
-
-  Future<void> _initializeNotifications() async {
-    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('app_icon');
-    final InitializationSettings initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid,
-    );
-    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
-  }
-
-  Future<void> _showNotification() async {
-    if (!_notificationsEnabled) return;
-
-    const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
-      'your channel id', 'your channel name',
-      channelDescription: 'your channel description',
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: false,
-    );
-    const NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
-    await flutterLocalNotificationsPlugin.show(
-      0,
-      '알림 제목',
-      '알림 내용',
-      platformChannelSpecifics,
-      payload: 'item x',
-    );
   }
 
   void setLocale(Locale locale) {
     setState(() {
       _locale = locale;
     });
-  }
-
-  void setNotificationsEnabled(bool enabled) {
-    setState(() {
-      _notificationsEnabled = enabled;
-    });
-    if (!enabled) {
-      flutterLocalNotificationsPlugin.cancelAll();
-    }
   }
 
   @override
@@ -107,7 +58,6 @@ class _MyAppState extends State<MyApp> {
         Locale('ko', 'KR'),
       ],
       localizationsDelegates: const [
-        AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
@@ -115,6 +65,7 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       theme: ThemeData(
+<<<<<<< HEAD
 <<<<<<< HEAD
         appBarTheme: const AppBarTheme(
           color: Colors.white,
@@ -126,6 +77,9 @@ class _MyAppState extends State<MyApp> {
 =======
 >>>>>>> parent of 8fb5c42 (로켈DB를 사용해 캘린더에서 일정 입력가능,)
         ),
+=======
+        appBarTheme: AppBarTheme(color: Colors.white),
+>>>>>>> parent of 4fbee95 (.)
         brightness: Brightness.light,
         scaffoldBackgroundColor: Colors.white,
         primaryColor: Colors.white,
@@ -195,9 +149,7 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.notifications),
             onPressed: () {
-              // 알림 예시
-              final myAppState = context.findAncestorStateOfType<_MyAppState>();
-              myAppState?._showNotification();
+              // 아이콘을 눌렀을 때 수행할 작업
             },
             color: Colors.white,
           ),
@@ -209,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: <Widget>[
             UserAccountsDrawerHeader(
               currentAccountPicture: const CircleAvatar(
-                backgroundImage: AssetImage('assets/calendar.png'),
+                backgroundImage: AssetImage('assets/img/splash_demo.png'),
               ),
               accountEmail: const Text('hanshin@hs.ac.kr'),
               accountName: const Text('캡디 5팀'),
