@@ -32,7 +32,7 @@ class _SignupScreenState extends State<SignupScreen> {
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('회원가입 실패'),
-          content: const Text('모든 필드를 입력하세요.'),
+          content: const Text('올바르지 않은 이메일입니다.'),
           actions: [
             TextButton(
               child: const Text('확인'),

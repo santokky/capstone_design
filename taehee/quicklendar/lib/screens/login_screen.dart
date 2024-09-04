@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:quicklendar/main.dart';
+import 'package:quicklendar/screens/ocr_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'signup_screen.dart';
 
@@ -26,7 +28,13 @@ class _LoginScreenState extends State<LoginScreen> {
     String enteredPassword = _passwordController.text;
 
     if (enteredEmail == savedEmail && enteredPassword == savedPassword) {
-      widget.onLoginSuccess(true); // 로그인 성공
+      // 로그인 성공 시 상태 업데이트
+      await prefs.setBool('isLoggedIn', true);  // 로그인 상태 true로 저장
+      widget.onLoginSuccess(true);  // 콜백 호출
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MyApp()),
+      );
     } else {
       showDialog(
         context: context,
