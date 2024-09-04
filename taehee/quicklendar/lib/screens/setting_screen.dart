@@ -36,6 +36,14 @@ class _SettingScreenState extends State<SettingScreen> {
     await _prefs?.setBool('darkTheme', _darkTheme);
   }
 
+  Future<void> _logout() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isLoggedIn', false); // 로그인 상태를 false로 설정
+
+    // 로그아웃 후 로그인 화면으로 이동
+    Navigator.pushReplacementNamed(context, '/login');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -96,6 +104,10 @@ class _SettingScreenState extends State<SettingScreen> {
               _showHelpDialog();
             },
           ),
+          ListTile(
+            title: const Text('로그아웃'),
+            onTap: _logout, // 로그아웃 함수 호출
+          ),
         ],
       ),
     );
@@ -133,12 +145,9 @@ class _SettingScreenState extends State<SettingScreen> {
   }
 
   void _changeLanguage(String language) {
-    // 언어 변경 로직을 추가합니다.
     if (language == '한국어') {
-      // 한국어로 변경
       MyApp.setLocale(context, const Locale('ko', 'KR'));
     } else {
-      // 영어로 변경
       MyApp.setLocale(context, const Locale('en', 'US'));
     }
   }
@@ -244,9 +253,7 @@ class _SettingScreenState extends State<SettingScreen> {
                 subtitle: const Text('example@example.com'),
               ),
               ElevatedButton(
-                onPressed: () {
-                  // 로그아웃 실행
-                },
+                onPressed: _logout, // 로그아웃 실행
                 child: const Text('로그아웃'),
               ),
               ElevatedButton(

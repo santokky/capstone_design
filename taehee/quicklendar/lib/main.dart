@@ -135,7 +135,11 @@ class _MyAppState extends State<MyApp> {
         scaffoldBackgroundColor: Colors.white,
         primaryColor: Colors.white,
       ),
-      home: _isLoggedIn ? const HomeScreen() : LoginScreen(onLoginSuccess: _setLoggedIn), // 로그인 여부에 따라 화면 결정
+    initialRoute: _isLoggedIn ? '/home' : '/login',  // 초기 경로 설정
+    routes: {
+      '/login': (context) => LoginScreen(onLoginSuccess: _setLoggedIn),
+      '/home': (context) => const HomeScreen(),
+      },
     );
   }
 }
