@@ -30,10 +30,15 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'com.okta.spring:okta-spring-boot-starter:3.0.7'
 	implementation 'org.springframework.cloud:spring-cloud-function-web'
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	// org.json 라이브러리 명시적 추가
+	implementation 'org.json:json:20240303'
 }
 
 dependencyManagement {
@@ -44,4 +49,9 @@ dependencyManagement {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+// 모든 의존성에서 android-json을 제외
+configurations.all {
+	exclude group: 'com.vaadin.external.google', module: 'android-json'
 }
