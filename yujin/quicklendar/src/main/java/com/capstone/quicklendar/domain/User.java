@@ -23,6 +23,10 @@ public class User {
     @Column(length = 50, nullable = false)
     private String username;
 
+    // email 필드는 길이가 100이고, null 허용하지 않고 일반 사용자 아이디
+    @Column(length = 100, nullable = false, unique = true)
+    private String email;
+    
     // 비밀번호 필드, null 허용 (OAuth2 사용자일 경우 password 없을 수 있음)
     @Column(length = 255)
     private String password;
