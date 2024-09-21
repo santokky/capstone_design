@@ -1,7 +1,6 @@
 package com.capstone.quicklendar.repository;
 
 import com.capstone.quicklendar.domain.User;
-
 import java.util.*;
 
 public class MemoryUserRepository implements UserRepository {
@@ -11,8 +10,8 @@ public class MemoryUserRepository implements UserRepository {
 
     @Override
     public User save(User user) {
-        user.setId(++sequence);
-        store.put(user.getId(), user);
+        user.setId(++sequence); // id 자동 증가
+        store.put(user.getId(), user); // 저장소에 사용자 저장
         return user;
     }
 
@@ -20,20 +19,20 @@ public class MemoryUserRepository implements UserRepository {
     public Optional<User> findByEmail(String email) {
         return store.values().stream()
                 .filter(user -> user.getEmail().equals(email))
-                .findAny();
+                .findAny(); // 이메일로 사용자 검색
     }
 
     @Override
     public List<User> findAll() {
-        return new ArrayList<>(store.values());
+        return new ArrayList<>(store.values()); // 모든 사용자 반환
     }
 
     @Override
     public void deleteByEmail(String email) {
-        store.values().removeIf(user -> user.getEmail().equals(email));
+        store.values().removeIf(user -> user.getEmail().equals(email)); // 이메일로 사용자 삭제
     }
 
     public void clearStore() {
-        store.clear(); // store 초기화
+        store.clear(); // 저장소 초기화
     }
 }
