@@ -72,6 +72,7 @@ public class User {
         updatedAt = LocalDateTime.now();
     }
 
+    // getter and setter
     public Long getId() {
         return id;
     }
