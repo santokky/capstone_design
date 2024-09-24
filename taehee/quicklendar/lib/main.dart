@@ -9,7 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'l10n/app_localizations.dart';
-import 'screens/login_screen.dart'; // 로그인 화면 추가
+import 'screens/login_screen.dart';
+import 'screens/contest_screen.dart';  // 새로 추가된 파일 import
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,7 +39,7 @@ class _MyAppState extends State<MyApp> {
   Locale? _locale;
   bool _notificationsEnabled = true;
   FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-  bool _isLoggedIn = false; // 로그인 상태를 저장할 변수
+  bool _isLoggedIn = false;
 
   @override
   void initState() {
@@ -51,11 +52,11 @@ class _MyAppState extends State<MyApp> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? languageCode = prefs.getString('selectedLanguage') ?? 'ko';
     bool? notificationsEnabled = prefs.getBool('notificationsEnabled') ?? true;
-    bool? isLoggedIn = prefs.getBool('isLoggedIn') ?? false; // 로그인 상태 불러오기
+    bool? isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
     setState(() {
       _locale = Locale(languageCode, '');
       _notificationsEnabled = notificationsEnabled;
-      _isLoggedIn = isLoggedIn; // 로그인 상태 설정
+      _isLoggedIn = isLoggedIn;
     });
   }
 
@@ -102,7 +103,6 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
-  // 로그인 상태를 저장하는 함수
   void _setLoggedIn(bool isLoggedIn) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -135,10 +135,11 @@ class _MyAppState extends State<MyApp> {
         scaffoldBackgroundColor: Colors.white,
         primaryColor: Colors.white,
       ),
-    initialRoute: _isLoggedIn ? '/home' : '/login',  // 초기 경로 설정
-    routes: {
-      '/login': (context) => LoginScreen(onLoginSuccess: _setLoggedIn),
-      '/home': (context) => const HomeScreen(),
+      initialRoute: _isLoggedIn ? '/home' : '/login',
+      routes: {
+        '/login': (context) => LoginScreen(onLoginSuccess: _setLoggedIn),
+        '/home': (context) => const HomeScreen(),
+        '/contest': (context) => ContestScreen(), // 새로 추가된 경로
       },
     );
   }
@@ -178,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   final _screens = const [
-    OCRScreen(), // 카메라 기능이 포함된 OCRScreen 사용
+    OCRScreen(),
     CalendarScreen(),
     EventScreen(),
     SettingScreen(),
@@ -204,7 +205,6 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.notifications),
             onPressed: () {
-              // 알림 예시
               final myAppState = context.findAncestorStateOfType<_MyAppState>();
               myAppState?._showNotification();
             },
@@ -240,7 +240,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 setState(() {
                   _currentIndex = 0;
                 });
-                Navigator.pop(context); // 드로어를 닫습니다.
+                Navigator.pop(context);
               },
             ),
             ListTile(
@@ -250,7 +250,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 setState(() {
                   _currentIndex = 1;
                 });
-                Navigator.pop(context); // 드로어를 닫습니다.
+                Navigator.pop(context);
               },
             ),
             ListTile(
@@ -260,7 +260,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 setState(() {
                   _currentIndex = 2;
                 });
-                Navigator.pop(context); // 드로어를 닫습니다.
+                Navigator.pop(context);
               },
             ),
             ListTile(
@@ -270,7 +270,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 setState(() {
                   _currentIndex = 3;
                 });
-                Navigator.pop(context); // 드로어를 닫습니다.
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.emoji_events),
+              title: const Text('공모전'),
+              onTap: () {
+                Navigator.pushNamed(context, '/contest'); // 새로 추가된 경로로 이동
               },
             ),
           ],
