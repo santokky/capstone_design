@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Delete Account</title>
+</head>
+<body>
+<form th:action="@{/delete-account}" method="post">
+    <!-- 사용자 ID를 히든 필드로 전달 -->
+    <input type="hidden" name="userId" th:value="${userId}" />
+    <button type="submit">회원 탈퇴</button>
+</form>
+</body>
+</html>
