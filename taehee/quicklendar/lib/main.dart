@@ -11,12 +11,35 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'l10n/app_localizations.dart';
 import 'screens/login_screen.dart';
 import 'screens/contest_screen.dart';  // 새로 추가된 파일 import
+//import 'package:mysql_client/mysql_client.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('ko_KR', null);
+  //dbConnector();
   runApp(const MyApp());
 }
+
+// Future<void> dbConnector() async {
+//   print("Connecting to mysql server...");
+//
+//   // MySQL 접속 설정
+//   final conn = await MySQLConnection.createConnection(
+//     host: 'http://127.0.0.1/localhost',
+//     port: 3306,
+//     userName: 'root',
+//     password: 'onlyroot',
+//     databaseName: 'quicklendar', // optional
+//   );
+//
+//   // 연결 대기
+//   await conn.connect();
+//
+//   print("Connected");
+//
+//   // 종료 대기
+//   await conn.close();
+// }
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -132,8 +155,25 @@ class _MyAppState extends State<MyApp> {
           color: Colors.white,
         ),
         brightness: Brightness.light,
+        colorScheme: const ColorScheme.light(
+          primary: Colors.blueAccent, // 주요 색상
+          secondary: Colors.white,
+          primaryContainer: Colors.blueAccent,
+          onBackground: Colors.blueAccent
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blueAccent,
+            foregroundColor: Colors.white
+          )
+        ),
         scaffoldBackgroundColor: Colors.white,
-        primaryColor: Colors.white,
+        canvasColor: Colors.white,
+        primaryColor: Colors.blueAccent,
+        // inputDecorationTheme: const InputDecorationTheme(
+        //   filled: true,
+        //   fillColor: Colors.white, // 모든 TextField의 배경색을 흰색으로 설정
+        // ),
       ),
       initialRoute: _isLoggedIn ? '/home' : '/login',
       routes: {
@@ -225,12 +265,16 @@ class _HomeScreenState extends State<HomeScreen> {
               onDetailsPressed: () {
                 print('press details');
               },
+              // decoration: const BoxDecoration(
+              //   color: Colors.blueAccent,
+              //   borderRadius: BorderRadius.only(
+              //     bottomLeft: Radius.circular(40),
+              //     bottomRight: Radius.circular(40),
+              //   ),
+              // ),
               decoration: const BoxDecoration(
-                color: Colors.blueAccent,
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(40),
-                  bottomRight: Radius.circular(40),
-                ),
+                color: Colors.blueAccent,  // 배경색만 설정
+                // 검은 선이나 그림자를 없애기 위해 boxShadow나 border를 추가하지 않음
               ),
             ),
             ListTile(
