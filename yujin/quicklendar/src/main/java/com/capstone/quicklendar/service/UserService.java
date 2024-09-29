@@ -37,6 +37,29 @@ public class UserService {
         });
     }
 
+    // 비밀번호 유효성 검사
+    private void validatePassword(String password) {
+        if (password.length() < 8) {
+            throw new IllegalArgumentException("비밀번호는 최소 8자 이상이어야 합니다.");
+        }
+
+        if (!password.matches(".*[A-Z].*")) {
+            throw new IllegalArgumentException("비밀번호에는 최소 하나의 대문자가 포함되어야 합니다.");
+        }
+
+        if (!password.matches(".*[a-z].*")) {
+            throw new IllegalArgumentException("비밀번호에는 최소 하나의 소문자가 포함되어야 합니다.");
+        }
+
+        if (!password.matches(".*\\d.*")) {
+            throw new IllegalArgumentException("비밀번호에는 최소 하나의 숫자가 포함되어야 합니다.");
+        }
+
+        if (!password.matches(".*[!@#\\$%\\^&\\*].*")) {
+            throw new IllegalArgumentException("비밀번호에는 최소 하나의 특수문자가 포함되어야 합니다.");
+        }
+    }
+
     // 회원 탈퇴 로직
     @Transactional
     public void deleteAccount(Long userId) {
@@ -47,5 +70,10 @@ public class UserService {
         } else {
             throw new IllegalArgumentException("해당 회원이 존재하지 않습니다.");
         }
+    }
+
+    @Transactional
+    public void updateProfile(User user) {
+        userRepository.save(user);  // 사용자 정보 업데이트
     }
 }

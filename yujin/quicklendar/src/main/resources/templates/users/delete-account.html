@@ -5,6 +5,7 @@
     <title>Delete Account</title>
 </head>
 <body>
+<h1>회원 탈퇴</h1>
 <form th:action="@{/delete-account}" method="post">
     <!-- 사용자 ID를 히든 필드로 전달 -->
     <input type="hidden" name="userId" th:value="${userId}" />

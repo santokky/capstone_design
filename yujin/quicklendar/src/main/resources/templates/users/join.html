@@ -3,6 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <title>회원가입</title>
+    <script>
+        function checkPasswordMatch() {
+            var password = document.getElementById("password").value;
+            var confirmPassword = document.getElementById("confirmPassword").value;
+
+            if (password !== confirmPassword) {
+                document.getElementById("passwordMatchMessage").innerText = "비밀번호가 일치하지 않습니다.";
+            } else {
+                document.getElementById("passwordMatchMessage").innerText = "비밀번호가 일치합니다.";
+            }
+        }
+
+        function checkPasswordStrength() {
+            var password = document.getElementById("password").value;
+            var strengthMessage = document.getElementById("passwordStrengthMessage");
+
+            // 기본적인 강도 체크: 길이, 숫자, 대문자, 특수 문자 포함 여부
+            var strongPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#\$%\^&\*])(?=.{8,})/;
+            if (strongPassword.test(password)) {
+                strengthMessage.innerText = "비밀번호 강도: 강함";
+                strengthMessage.style.color = "green";
+            } else {
+                strengthMessage.innerText = "비밀번호 강도: 약함 (8자 이상, 대소문자, 숫자, 특수문자를 포함해야 합니다)";
+                strengthMessage.style.color = "red";
+            }
+        }
+    </script>
 </head>
 <body>
 <h1>회원가입</h1>
@@ -14,7 +41,12 @@
     <input type="email" id="email" name="email" required>
     <br>
     <label for="password">비밀번호:</label>
-    <input type="password" id="password" name="password" required>
+    <input type="password" id="password" name="password" onkeyup="checkPasswordStrength(); checkPasswordMatch();" required>
+    <span id="passwordStrengthMessage" style="color:red"></span>
+    <br>
+    <label for="confirmPassword">비밀번호 확인:</label>
+    <input type="password" id="confirmPassword" name="confirmPassword" onkeyup="checkPasswordMatch();" required>
+    <span id="passwordMatchMessage" style="color:red"></span>
     <br>
     <label for="phone">전화번호:</label>
     <input type="text" id="phone" name="phone" required>

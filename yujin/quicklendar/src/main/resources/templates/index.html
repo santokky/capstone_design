@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Quicklendar - Main</title>
+    <title>Quicklendar 기능 테스트</title>
 </head>
 <body>
 <h1>Quicklendar</h1>
@@ -11,7 +11,11 @@
     <li><a th:href="@{/join}">회원가입</a></li>
     <li><a th:href="@{/login}">로그인</a></li>
     <li><a th:href="@{/delete-account}">회원탈퇴</a></li>
-    <!-- 이후 기능 추가 시 버튼을 아래에 추가 가능 -->
+    <li><a th:href="@{/profile}">프로필 수정</a></li>
+    <li><a th:href="@{/logout-page}">로그아웃</a></li>
+    <br>
+    <li><a th:href="@{/oauth2/authorization/google}">Google 로그인</a></li>
+    <li><a th:href="@{/oauth2/authorization/naver}">Naver 로그인</a></li>
 </ul>
 </body>
 </html>
