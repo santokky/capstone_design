@@ -66,4 +66,6 @@ flutter {
 }
 
 dependencies {
+    implementation 'com.google.mlkit:text-recognition-korean:16.0.0'  //한국어 번역
+    implementation 'com.google.mlkit:text-recognition-chinese:16.0.0' // 중국어 번역
 }
