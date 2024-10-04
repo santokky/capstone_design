@@ -69,6 +69,7 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     _loadSettings();
     _initializeNotifications();
+
   }
 
   Future<void> _loadSettings() async {

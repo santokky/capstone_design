@@ -1,9 +1,9 @@
-// screens/contest_screen.dart
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:carousel_slider/carousel_slider.dart';
 import '../models/contest.dart';
 import '../widgets/contest_form.dart';
+import '../contest_database.dart';
 import 'contest_detail_screen.dart';
 
 class ContestScreen extends StatefulWidget {
@@ -16,11 +16,25 @@ class ContestScreen extends StatefulWidget {
 class _ContestScreenState extends State<ContestScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   int currentIndex = 0;
-  final List<Contest> contestList = [];
-  final List<Contest> filteredContests = []; // 필터링된 공모전 리스트
-  final TextEditingController searchController = TextEditingController(); // 검색어 입력받기
+  int currentTabIndex = 0; // 현재 TabBar 인덱스를 저장하는 변수
 
-  // 이미지 슬라이더에 사용할 이미지 리스트 (Asset 경로)
+  List<Contest> contestList = [];
+  List<Contest> homeFilteredContests = []; // 홈 탭의 필터링 리스트
+  List<Contest> contestFilteredContests = []; // 공모전 탭의 필터링 리스트
+  List<Contest> activityFilteredContests = []; // 대외활동 탭의 필터링 리스트
+
+  final TextEditingController searchController = TextEditingController();
+
+  String selectedCategory = '모든 카테고리';
+  String selectedPeriod = '모든 기간';
+  String selectedOrganizer = '모든 주최자';
+
+  final List<String> categories = ['모든 카테고리', '예술 및 디자인', '기술 및 공학', '기타'];
+  final List<String> periods = ['모든 기간', '신청 D-7 이내', '신청 D-30 이내', '시작 D-7 이내', '종료 D-30 이내'];
+  List<String> contestOrganizers = ['모든 주최자'];  // 공모전 주최자 목록
+  List<String> activityOrganizers = ['모든 주최자']; // 대외활동 주최자 목록
+  List<String> organizers = ['모든 주최자'];  // 현재 표시할 주최자 목록
+
   final List<String> imageUrls = [
     'assets/img/slider_sample1.png',
     'assets/img/slider_sample2.png',
@@ -31,57 +45,192 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+
+    // TabBar 상태를 추적하는 리스너 추가
+    _tabController.addListener(() {
+      setState(() {
+        currentTabIndex = _tabController.index;
+        // 탭이 바뀔 때마다 주최자 목록을 해당 카테고리로 필터링
+        if (currentTabIndex == 1) {
+          organizers = contestOrganizers;
+        } else if (currentTabIndex == 2) {
+          organizers = activityOrganizers;
+        }
+      });
+    });
+
+    loadContestsFromDatabase(); // 앱 시작 시 데이터베이스에서 공모전 정보를 불러옴
+    loadOrganizersFromDatabase(); // 주최자 목록을 불러옴
+  }
+
+  Future<void> loadOrganizersFromDatabase() async {
+    List<String> dbContestOrganizers = await ContestDatabase.instance.readOrganizersByCategory('공모전');
+    List<String> dbActivityOrganizers = await ContestDatabase.instance.readOrganizersByCategory('대외활동');
+
+    setState(() {
+      contestOrganizers = ['모든 주최자', ...dbContestOrganizers];  // 공모전 주최자 목록
+      activityOrganizers = ['모든 주최자', ...dbActivityOrganizers];  // 대외활동 주최자 목록
+
+      // 탭이 공모전 탭일 경우 공모전 주최자 목록을, 대외활동 탭일 경우 대외활동 주최자 목록을 기본값으로 설정
+      if (currentTabIndex == 1) {
+        organizers = contestOrganizers;
+      } else if (currentTabIndex == 2) {
+        organizers = activityOrganizers;
+      }
+    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
-    searchController.dispose(); // 검색 컨트롤러 해제
+    searchController.dispose();
     super.dispose();
   }
 
-  // 검색 기능 구현
-  void _filterContests(String query) {
+  Future<void> loadContestsFromDatabase() async {
+    contestList = await ContestDatabase.instance.readAllContests();
     setState(() {
-      if (query.isEmpty) {
-        filteredContests.clear();
-        filteredContests.addAll(contestList); // 검색어가 없을 때는 전체 리스트
-      } else {
-        filteredContests.clear();
-        filteredContests.addAll(
-          contestList.where((contest) =>
-              contest.title.toLowerCase().contains(query.toLowerCase())), // 제목을 검색어로 필터링
-        );
-      }
+      homeFilteredContests = List.from(contestList); // 초기값
+      contestFilteredContests = List.from(contestList.where((c) => c.activityType == "공모전"));
+      activityFilteredContests = List.from(contestList.where((c) => c.activityType == "대외활동"));
     });
   }
 
-  // 공모전 추가 폼 띄우기
-  void showAddContestForm() {
-    showDialog(
+  void _filterHomeContests(String query) {
+    setState(() {
+      List<Contest> tempList = List.from(contestList);
+
+      // 검색어 필터링 (홈 탭은 검색어만 적용)
+      if (query.isNotEmpty) {
+        tempList = tempList.where((contest) {
+          return contest.title.toLowerCase().contains(query.toLowerCase());
+        }).toList();
+      }
+
+      homeFilteredContests = tempList;
+    });
+  }
+
+  void _filterContestTab(String query) {
+    setState(() {
+      List<Contest> tempList = List.from(contestList.where((c) => c.activityType == "공모전"));
+
+      // 검색어 필터링
+      if (query.isNotEmpty) {
+        tempList = tempList.where((contest) {
+          return contest.title.toLowerCase().contains(query.toLowerCase());
+        }).toList();
+      }
+
+      // 카테고리 필터링
+      if (selectedCategory != '모든 카테고리') {
+        tempList = tempList.where((contest) {
+          return contest.category == selectedCategory;
+        }).toList();
+      }
+
+      // 주최자 필터링
+      if (selectedOrganizer != '모든 주최자') {
+        tempList = tempList.where((contest) {
+          return contest.organizer == selectedOrganizer;
+        }).toList();
+      }
+
+      // 기간 필터링
+      if (selectedPeriod == '신청 D-7 이내') {
+        tempList = tempList.where((contest) {
+          return contest.applicationEnd.isBefore(DateTime.now().add(Duration(days: 7)));
+        }).toList();
+      } else if (selectedPeriod == '신청 D-30 이내') {
+        tempList = tempList.where((contest) {
+          return contest.applicationEnd.isBefore(DateTime.now().add(Duration(days: 30)));
+        }).toList();
+      } else if (selectedPeriod == '시작 D-7 이내') {
+        tempList = tempList.where((contest) {
+          return contest.startDate.isBefore(DateTime.now().add(Duration(days: 7)));
+        }).toList();
+      } else if (selectedPeriod == '종료 D-30 이내') {
+        tempList = tempList.where((contest) {
+          return contest.endDate.isBefore(DateTime.now().add(Duration(days: 30)));
+        }).toList();
+      }
+
+      contestFilteredContests = tempList;
+    });
+  }
+
+  void _filterActivityTab(String query) {
+    setState(() {
+      List<Contest> tempList = List.from(contestList.where((c) => c.activityType == "대외활동"));
+
+      // 검색어 필터링
+      if (query.isNotEmpty) {
+        tempList = tempList.where((contest) {
+          return contest.title.toLowerCase().contains(query.toLowerCase());
+        }).toList();
+      }
+
+      // 카테고리 필터링
+      if (selectedCategory != '모든 카테고리') {
+        tempList = tempList.where((contest) {
+          return contest.category == selectedCategory;
+        }).toList();
+      }
+
+      // 주최자 필터링
+      if (selectedOrganizer != '모든 주최자') {
+        tempList = tempList.where((contest) {
+          return contest.organizer == selectedOrganizer;
+        }).toList();
+      }
+
+      // 기간 필터링
+      if (selectedPeriod == '신청 D-7 이내') {
+        tempList = tempList.where((contest) {
+          return contest.applicationEnd.isBefore(DateTime.now().add(Duration(days: 7)));
+        }).toList();
+      } else if (selectedPeriod == '신청 D-30 이내') {
+        tempList = tempList.where((contest) {
+          return contest.applicationEnd.isBefore(DateTime.now().add(Duration(days: 30)));
+        }).toList();
+      } else if (selectedPeriod == '시작 D-7 이내') {
+        tempList = tempList.where((contest) {
+          return contest.startDate.isBefore(DateTime.now().add(Duration(days: 7)));
+        }).toList();
+      } else if (selectedPeriod == '종료 D-30 이내') {
+        tempList = tempList.where((contest) {
+          return contest.endDate.isBefore(DateTime.now().add(Duration(days: 30)));
+        }).toList();
+      }
+
+      activityFilteredContests = tempList;
+    });
+  }
+
+  Future<void> showAddContestForm() async {
+    await showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           content: ContestForm(
-            onSubmit: (imageUrl, title, organizer, description, location, appStart, appEnd, start, end, appLink, contact) {
-              setState(() {
-                final newContest = Contest(
-                  imageUrl: imageUrl,
-                  title: title,
-                  organizer: organizer,
-                  description: description,
-                  location: location,
-                  applicationStart: appStart,
-                  applicationEnd: appEnd,
-                  startDate: start,
-                  endDate: end,
-                  applicationLink: appLink,
-                  contact: contact,
-                );
-                contestList.add(newContest);
-                filteredContests.add(newContest); // 필터된 리스트에도 추가
-                contestList.sort((a, b) => b.views.compareTo(a.views)); // 조회수 순 정렬
-              });
+            onSubmit: (imageUrl, title, organizer, description, location, appStart, appEnd, start, end, appLink, contact, category, activityType) async {
+              final newContest = Contest(
+                imageUrl: imageUrl,
+                title: title,
+                organizer: organizer,
+                description: description,
+                location: location,
+                applicationStart: appStart,
+                applicationEnd: appEnd,
+                startDate: start,
+                endDate: end,
+                applicationLink: appLink,
+                contact: contact,
+                category: category,
+                activityType: activityType,
+              );
+              await ContestDatabase.instance.create(newContest);
+              await loadContestsFromDatabase(); // 데이터베이스에서 공모전 목록을 다시 로드
               Navigator.of(context).pop();
             },
           ),
@@ -92,11 +241,10 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
 
   Widget buildContestCard(Contest contest) {
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          contest.views++;
-        });
-
+      onTap: () async {
+        contest.views++;
+        await ContestDatabase.instance.updateViews(contest); // 조회수 업데이트
+        await loadContestsFromDatabase(); // 데이터베이스에서 공모전 목록을 다시 로드
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -182,6 +330,125 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
     );
   }
 
+  Widget buildFilterRow() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          Expanded(
+            child: IntrinsicWidth(
+              child: DropdownButtonFormField<String>(
+                value: selectedCategory,
+                isDense: true,
+                isExpanded: true, // 메뉴 자체는 확장되도록 설정
+                items: categories.map((String category) {
+                  return DropdownMenuItem<String>(
+                    value: category,
+                    child: Text(
+                      category,
+                      style: const TextStyle(fontSize: 12),
+                      overflow: TextOverflow.ellipsis, // 텍스트가 길면 잘리도록 설정
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedCategory = value!;
+                    if (currentTabIndex == 1) {
+                      _filterContestTab(searchController.text);
+                    } else if (currentTabIndex == 2) {
+                      _filterActivityTab(searchController.text);
+                    }
+                  });
+                },
+                decoration: InputDecoration(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: IntrinsicWidth(
+              child: DropdownButtonFormField<String>(
+                value: selectedPeriod,
+                isDense: true,
+                isExpanded: true, // 메뉴 자체는 확장되도록 설정
+                items: periods.map((String period) {
+                  return DropdownMenuItem<String>(
+                    value: period,
+                    child: Text(
+                      period,
+                      style: const TextStyle(fontSize: 12),
+                      overflow: TextOverflow.ellipsis, // 텍스트가 길면 잘리도록 설정
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedPeriod = value!;
+                    if (currentTabIndex == 1) {
+                      _filterContestTab(searchController.text);
+                    } else if (currentTabIndex == 2) {
+                      _filterActivityTab(searchController.text);
+                    }
+                  });
+                },
+                decoration: InputDecoration(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: IntrinsicWidth(
+              child: DropdownButtonFormField<String>(
+                value: selectedOrganizer,
+                isDense: true,
+                isExpanded: true, // 메뉴 자체는 확장되도록 설정
+                items: organizers.map((String organizer) {
+                  return DropdownMenuItem<String>(
+                    value: organizer,
+                    child: Text(
+                      organizer,
+                      style: const TextStyle(fontSize: 12),
+                      overflow: TextOverflow.ellipsis, // 텍스트가 길면 잘리도록 설정
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedOrganizer = value!;
+                    if (currentTabIndex == 1) {
+                      _filterContestTab(searchController.text);
+                    } else if (currentTabIndex == 2) {
+                      _filterActivityTab(searchController.text);
+                    }
+                  });
+                },
+                decoration: InputDecoration(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -196,20 +463,34 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
         ),
         title: const Text("공모전"),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(100.0),
+          preferredSize: const Size.fromHeight(120.0), // TabBar 높이 조정
           child: Column(
             children: [
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: TextField(
                   controller: searchController,
-                  onChanged: _filterContests, // 검색어가 변경될 때마다 필터링 실행
+                  onChanged: (text) {
+                    if (currentTabIndex == 0) {
+                      _filterHomeContests(text);
+                    } else if (currentTabIndex == 1) {
+                      _filterContestTab(text);
+                    } else if (currentTabIndex == 2) {
+                      _filterActivityTab(text);
+                    }
+                  },
                   decoration: InputDecoration(
                     hintText: "공모전 검색",
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.search),
                       onPressed: () {
-                        _filterContests(searchController.text); // 검색 버튼 클릭 시 필터링
+                        if (currentTabIndex == 0) {
+                          _filterHomeContests(searchController.text);
+                        } else if (currentTabIndex == 1) {
+                          _filterContestTab(searchController.text);
+                        } else if (currentTabIndex == 2) {
+                          _filterActivityTab(searchController.text);
+                        }
                       },
                     ),
                     border: OutlineInputBorder(
@@ -234,166 +515,174 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
           ),
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          // '홈' 탭
-          CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
+          if (currentTabIndex == 1 || currentTabIndex == 2) buildFilterRow(), // 공모전과 대외활동 탭에서만 필터링 메뉴 표시
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                // 홈 탭
+                CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(
                       child: Column(
                         children: [
-                          CarouselSlider(
-                            options: CarouselOptions(
-                              height: 200.0,
-                              autoPlay: true,
-                              enlargeCenterPage: true,
-                              aspectRatio: 16 / 9,
-                              viewportFraction: 0.8,
-                              onPageChanged: (index, reason) {
-                                setState(() {
-                                  currentIndex = index;
-                                });
-                              },
-                            ),
-                            items: imageUrls.map((url) {
-                              return Builder(
-                                builder: (BuildContext context) {
-                                  return Container(
-                                    margin: const EdgeInsets.symmetric(horizontal: 5.0),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(10.0),
-                                      child: Image.asset(
-                                        url,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              );
-                            }).toList(),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: imageUrls.asMap().entries.map((entry) {
-                              return GestureDetector(
-                                onTap: () => setState(() {
-                                  currentIndex = entry.key;
-                                }),
-                                child: Container(
-                                  width: 8.0,
-                                  height: 8.0,
-                                  margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: currentIndex == entry.key
-                                        ? Colors.blueAccent
-                                        : Colors.grey,
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Column(
+                              children: [
+                                CarouselSlider(
+                                  options: CarouselOptions(
+                                    height: 200.0,
+                                    autoPlay: true,
+                                    enlargeCenterPage: true,
+                                    aspectRatio: 16 / 9,
+                                    viewportFraction: 0.8,
+                                    onPageChanged: (index, reason) {
+                                      setState(() {
+                                        currentIndex = index;
+                                      });
+                                    },
                                   ),
+                                  items: imageUrls.map((url) {
+                                    return Builder(
+                                      builder: (BuildContext context) {
+                                        return Container(
+                                          margin: const EdgeInsets.symmetric(horizontal: 5.0),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(10.0),
+                                            child: Image.asset(
+                                              url,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  }).toList(),
                                 ),
-                              );
-                            }).toList(),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: imageUrls.asMap().entries.map((entry) {
+                                    return GestureDetector(
+                                      onTap: () => setState(() {
+                                        currentIndex = entry.key;
+                                      }),
+                                      child: Container(
+                                        width: 8.0,
+                                        height: 8.0,
+                                        margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: currentIndex == entry.key
+                                              ? Colors.blueAccent
+                                              : Colors.grey,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                "현재 주목 받는 공모전",
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                              ),
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    const Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          "현재 주목 받는 공모전",
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                        ),
+                    SliverGrid(
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 8.0,
+                        mainAxisSpacing: 8.0,
+                        childAspectRatio: 0.7,
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                          final contest = homeFilteredContests[index];
+                          return buildContestCard(contest);
+                        },
+                        childCount: homeFilteredContests.length,
                       ),
                     ),
                   ],
                 ),
-              ),
-              SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 8.0,
-                  mainAxisSpacing: 8.0,
-                  childAspectRatio: 0.7,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                    return buildContestCard(filteredContests[index]);
-                  },
-                  childCount: filteredContests.length, // 필터된 공모전 리스트 사용
-                ),
-              ),
-            ],
-          ),
-
-          // '공모전' 탭
-          CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      "공모전",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                // 공모전 탭: '공모전' 활동분야만 필터링
+                CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: const Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "공모전",
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ),
-              SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 8.0,
-                  mainAxisSpacing: 8.0,
-                  childAspectRatio: 0.7,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                    return buildContestCard(filteredContests[index]);
-                  },
-                  childCount: filteredContests.length, // 필터된 공모전 리스트 사용
-                ),
-              ),
-            ],
-          ),
-
-          // '대외활동' 탭
-          CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      "대외활동",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    SliverGrid(
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 8.0,
+                        mainAxisSpacing: 8.0,
+                        childAspectRatio: 0.7,
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                          final contest = contestFilteredContests[index];
+                          return buildContestCard(contest);
+                        },
+                        childCount: contestFilteredContests.length,
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ),
-              SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 8.0,
-                  mainAxisSpacing: 8.0,
-                  childAspectRatio: 0.7,
+                // 대외활동 탭: '대외활동' 활동분야만 필터링
+                CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: const Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "대외활동",
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SliverGrid(
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 8.0,
+                        mainAxisSpacing: 8.0,
+                        childAspectRatio: 0.7,
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                          final contest = activityFilteredContests[index];
+                          return buildContestCard(contest);
+                        },
+                        childCount: activityFilteredContests.length,
+                      ),
+                    ),
+                  ],
                 ),
-                delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                    return buildContestCard(filteredContests[index]);
-                  },
-                  childCount: filteredContests.length, // 필터된 공모전 리스트 사용
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
