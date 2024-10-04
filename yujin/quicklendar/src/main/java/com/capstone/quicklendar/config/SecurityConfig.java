@@ -1,8 +1,12 @@
 package com.capstone.quicklendar.config;
 
+import com.capstone.quicklendar.repository.OAuthUserRepository;
+import com.capstone.quicklendar.repository.UserRepository;
+import com.capstone.quicklendar.service.CustomOAuth2UserService;
 import com.capstone.quicklendar.service.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.RequestEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -11,27 +15,43 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.endpoint.DefaultAuthorizationCodeTokenResponseClient;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResponseClient;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequestEntityConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.util.MultiValueMap;
 
 @Configuration
 public class SecurityConfig {
 
     private final CustomUserDetailsService customUserDetailsService;
+    private final UserRepository userRepository;
+    private final OAuthUserRepository oauthUserRepository;
 
-    public SecurityConfig(CustomUserDetailsService customUserDetailsService) {
+    public SecurityConfig(CustomUserDetailsService customUserDetailsService, UserRepository userRepository, OAuthUserRepository oauthUserRepository) {
         this.customUserDetailsService = customUserDetailsService;
+        this.userRepository = userRepository;
+        this.oauthUserRepository = oauthUserRepository;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/", "/login", "/join", "/resources/**", "/oauth2/**").permitAll()
+                        .requestMatchers("/", "/index", "/login", "/join", "/resources/**", "/oauth2/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth -> oauth
                         .loginPage("/login")
+                        .tokenEndpoint(token -> token
+                                .accessTokenResponseClient(accessTokenResponseClient()) // 커스텀 클라이언트 사용
+                        )
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .userService(customOAuth2UserService())  // CustomOAuth2UserService 사용
+                        )
                         .defaultSuccessUrl("/", true)
+                        .failureUrl("/login?error=true")
                 )
                 .formLogin(login -> login
                         .loginPage("/login")
@@ -39,11 +59,9 @@ public class SecurityConfig {
                         .permitAll()
                 )
                 .logout(logout -> logout.permitAll())
-
-                // 세션 관리 추가 설정
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // 필요할 때만 세션 생성
-                        .maximumSessions(1) // 동시에 하나의 세션만 허용
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                        .maximumSessions(1)
                 );
 
         return http.build();
@@ -70,6 +88,30 @@ public class SecurityConfig {
     @Bean
     public UserDetailsService userDetailsService() {
         return customUserDetailsService;
+    }
+
+    @Bean
+    public CustomOAuth2UserService customOAuth2UserService() {
+        return new CustomOAuth2UserService(userRepository, oauthUserRepository);
+    }
+
+    @Bean
+    public OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> accessTokenResponseClient() {
+        DefaultAuthorizationCodeTokenResponseClient tokenResponseClient = new DefaultAuthorizationCodeTokenResponseClient();
+
+        // Custom RequestEntityConverter 설정
+        tokenResponseClient.setRequestEntityConverter(new OAuth2AuthorizationCodeGrantRequestEntityConverter() {
+            @Override
+            public RequestEntity<?> convert(OAuth2AuthorizationCodeGrantRequest authorizationGrantRequest) {
+                RequestEntity<?> originalRequest = super.convert(authorizationGrantRequest);
+                // MultiValueMap<String, String>에 client_secret 추가
+                MultiValueMap<String, String> body = (MultiValueMap<String, String>) originalRequest.getBody();
+                body.add("client_secret", "{client-secret}");
+                return new RequestEntity<>(body, originalRequest.getHeaders(), originalRequest.getMethod(), originalRequest.getUrl());
+            }
+        });
+
+        return tokenResponseClient;
     }
 }
 

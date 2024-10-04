@@ -2,6 +2,7 @@ package com.capstone.quicklendar.controller;
 
 import com.capstone.quicklendar.domain.CustomUserDetails;
 import com.capstone.quicklendar.domain.User;
+import com.capstone.quicklendar.service.CustomOAuth2UserService;
 import com.capstone.quicklendar.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -17,10 +18,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class UserController {
 
     private final UserService userService;
+    private final CustomOAuth2UserService customOAuth2UserService;
 
     @Autowired
-    public UserController(UserService userService) {
+    public UserController(UserService userService, CustomOAuth2UserService customOAuth2UserService) {
         this.userService = userService;
+        this.customOAuth2UserService = customOAuth2UserService;
     }
 
     @Autowired
@@ -124,5 +127,12 @@ public class UserController {
     @GetMapping("/logout-page")
     public String showLogoutPage() {
         return "users/logout";
+    }
+
+    // 소셜 연동 해제
+    @PostMapping("/unlink-oauth")
+    public String unlinkOAuthUser(@RequestParam("userId") Long userId) {
+        customOAuth2UserService.unlinkOAuthUser(userId);
+        return "redirect:/";  // 메인 페이지로 리다이렉트
     }
 }

@@ -47,6 +47,10 @@ public class User {
     @Column(name = "updated_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
     private LocalDateTime updatedAt;
 
+    // OAuthUser와의 일대일 관계
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    private OAuthUser oauthUser;
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) { // 생성 시 한 번만 시간 설정
@@ -146,6 +150,15 @@ public class User {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    // OAuthUser getter and setter
+    public OAuthUser getOauthUser() {
+        return oauthUser;
+    }
+
+    public void setOauthUser(OAuthUser oauthUser) {
+        this.oauthUser = oauthUser;
     }
 }
 
