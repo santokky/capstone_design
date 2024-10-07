@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>공모전 추가</title>
+</head>
+<body>
+<h1>공모전 추가</h1>
+
+<form action="#" th:action="@{/competitions/addCompetition}" method="post" enctype="multipart/form-data">
+    <div>
+        <label for="name">제목:</label>
+        <input type="text" id="name" name="name" required>
+    </div>
+
+    <div>
+        <label for="image">이미지:</label>
+        <input type="file" id="image" name="image">
+    </div>
+
+    <div>
+        <label for="host">주최자:</label>
+        <input type="text" id="host" name="host" required>
+    </div>
+
+    <div>
+        <label for="category">카테고리:</label>
+        <select id="category" name="category" required>
+            <option value="CREATIVE_ARTS_AND_DESIGN">Creative Arts and Design</option>
+            <option value="TECHNOLOGY_AND_ENGINEERING">Technology and Engineering</option>
+            <option value="BUSINESS_AND_ACADEMIC">Business and Academic</option>
+        </select>
+    </div>
+
+    <div>
+        <label for="requestPath">신청 경로 (URL):</label>
+        <input type="url" id="requestPath" name="requestPath" required>
+    </div>
+
+    <div>
+        <label for="requestStartDate">신청 시작 날짜:</label>
+        <input type="date" id="requestStartDate" name="requestStartDate" required>
+    </div>
+
+    <div>
+        <label for="requestEndDate">신청 종료 날짜:</label>
+        <input type="date" id="requestEndDate" name="requestEndDate" required>
+    </div>
+
+    <div>
+        <label for="startDate">공모전 시작 날짜:</label>
+        <input type="date" id="startDate" name="startDate" required>
+    </div>
+
+    <div>
+        <label for="endDate">공모전 종료 날짜:</label>
+        <input type="date" id="endDate" name="endDate" required>
+    </div>
+
+    <div>
+        <label for="location">장소:</label>
+        <input type="text" id="location" name="location">
+    </div>
+
+    <div>
+        <label for="support">문의 연락처:</label>
+        <input type="text" id="support" name="support">
+    </div>
+
+    <div>
+        <label for="competitionType">공모전 유형:</label>
+        <select id="competitionType" name="competitionType" required>
+            <option value="COMPETITION">Competition</option>
+            <option value="ACTIVITY">Activity</option>
+        </select>
+    </div>
+
+    <div>
+        <label for="description">상세 설명:</label>
+        <textarea id="description" name="description" required></textarea>
+    </div>
+
+    <div>
+        <button type="submit">공모전 추가</button>
+    </div>
+</form>
+
+<a th:href="@{/competitions/main}">메인 페이지로 돌아가기</a>
+
+</body>
+</html>
