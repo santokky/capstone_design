@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>공모전 상세 정보</title>
+</head>
+<body>
+<h1 th:text="${competition.name != null ? competition.name : '해당 정보 없음'}">공모전 제목</h1>
+<img th:src="@{/images/{file}(file=${competition.image})}" alt="공모전 이미지" width="150" height="150"/>
+
+<p><strong>주최자:</strong> <span th:text="${competition.host != null ? competition.host : '해당 정보 없음'}">주최자 정보</span></p>
+<p><strong>카테고리:</strong> <span th:text="${competition.category != null ? competition.category.getCategoryName() : '해당 정보 없음'}">카테고리 정보</span></p>
+<p><strong>신청 경로:</strong> <a th:href="${competition.requestPath != null ? competition.requestPath : '#'}" th:text="${competition.requestPath != null ? competition.requestPath : '해당 정보 없음'}">신청 경로</a></p>
+<p><strong>신청 기간:</strong> <span th:text="${competition.requestStartDate != null ? competition.requestStartDate : '해당 정보 없음'}">시작일</span> ~
+    <span th:text="${competition.requestEndDate != null ? competition.requestEndDate : '해당 정보 없음'}">종료일</span></p>
+<p><strong>공모전 기간:</strong> <span th:text="${competition.startDate != null ? competition.startDate : '해당 정보 없음'}">시작일</span> ~
+    <span th:text="${competition.endDate != null ? competition.endDate : '해당 정보 없음'}">종료일</span></p>
+<p><strong>장소:</strong> <span th:text="${competition.location != null ? competition.location : '해당 정보 없음'}">장소 정보</span></p>
+<p><strong>문의 연락처:</strong> <span th:text="${competition.support != null ? competition.support : '해당 정보 없음'}">문의 정보</span></p>
+<p><strong>공모전 타입:</strong> <span th:text="${competition.competitionType != null ? competition.competitionType.getCompetitionTypeName() : '해당 정보 없음'}">공모전 타입 정보</span></p>
+<p><strong>상세 설명:</strong></p>
+<p th:text="${competition.description != null ? competition.description : '해당 정보 없음'}">공모전 상세 설명</p>
+
+<a href="/competitions/main">목록으로 돌아가기</a>
+</body>
+</html>

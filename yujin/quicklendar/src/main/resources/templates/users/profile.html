@@ -7,23 +7,27 @@
 <body>
 <h1>프로필 수정</h1>
 <form th:action="@{/profile}" method="post">
-    <!-- ID와 이메일은 읽기 전용 -->
-    <label for="id">ID:</label>
-    <input type="text" id="id" name="id" th:value="${user.id}" readonly>
-    <br>
+    <!-- 이메일은 읽기 전용 -->
     <label for="email">이메일:</label>
-    <input type="email" id="email" name="email" th:value="${user.username}" readonly>
+    <input type="email" id="email" name="email" th:value="${user.email}" readonly>
     <br>
 
-    <!-- 수정 가능한 이름, 전화번호, 비밀번호 -->
+    <!-- 수정 가능한 이름, 전화번호 -->
     <label for="name">이름:</label>
     <input type="text" id="name" name="name" th:value="${user.name}" required>
     <br>
     <label for="phone">전화번호:</label>
-    <input type="text" id="phone" name="phone" th:value="${user.phone}" required>
+    <input type="text" id="phone" name="phone"
+           th:placeholder="${user.provider == 'google' ? 'Google은 전화번호를 제공하지 않습니다.' : ''}"
+           th:value="${user.provider != 'google' ? user.phone : ''}" required>
     <br>
+
+    <!-- 비밀번호 필드는 OAuth 유저일 경우 비활성화 또는 null로 표시 -->
     <label for="password">비밀번호:</label>
-    <input type="password" id="password" name="password">
+    <input type="password" id="password" name="password"
+           th:disabled="${#strings.equals(user.userType.name(), 'OAUTH')}"
+           th:attr="id=${#strings.equals(user.userType.name(), 'OAUTH') ? 'password-oauth' : 'password'}"
+           th:placeholder="${#strings.equals(user.userType.name(), 'OAUTH') ? 'OAuth 유저 비밀번호 없음' : ''}">
     <br><br>
 
     <button type="submit">프로필 수정</button>

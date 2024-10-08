@@ -39,7 +39,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/", "/index", "/login", "/join", "/resources/**", "/oauth2/**").permitAll()
+                        .requestMatchers("/", "/index", "/login", "/join", "/resources/**", "/oauth2/**", "/competitions/main" ,"/images/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth -> oauth
@@ -99,19 +99,26 @@ public class SecurityConfig {
     public OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> accessTokenResponseClient() {
         DefaultAuthorizationCodeTokenResponseClient tokenResponseClient = new DefaultAuthorizationCodeTokenResponseClient();
 
-        // Custom RequestEntityConverter 설정
         tokenResponseClient.setRequestEntityConverter(new OAuth2AuthorizationCodeGrantRequestEntityConverter() {
             @Override
             public RequestEntity<?> convert(OAuth2AuthorizationCodeGrantRequest authorizationGrantRequest) {
                 RequestEntity<?> originalRequest = super.convert(authorizationGrantRequest);
-                // MultiValueMap<String, String>에 client_secret 추가
                 MultiValueMap<String, String> body = (MultiValueMap<String, String>) originalRequest.getBody();
-                body.add("client_secret", "{client-secret}");
+
+                // 네이버와 구글 각각에 대해 client_secret을 추가
+                String provider = authorizationGrantRequest.getClientRegistration().getRegistrationId();
+                if ("naver".equals(provider)) {
+                    body.add("client_secret", "{}");  // 네이버 시크릿
+                } else if ("google".equals(provider)) {
+                    body.add("client_secret", "");  // 구글 시크릿
+                }
+
                 return new RequestEntity<>(body, originalRequest.getHeaders(), originalRequest.getMethod(), originalRequest.getUrl());
             }
         });
 
         return tokenResponseClient;
     }
+
 }
 

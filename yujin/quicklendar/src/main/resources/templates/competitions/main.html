@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>공모전 목록</title>
+</head>
+<body>
+<h1>공모전 목록</h1>
+<ul>
+    <li th:each="competition : ${competitions}">
+        <!-- 이미지를 클릭하면 상세 페이지로 이동 -->
+        <a th:href="@{/competitions/details/{id}(id=${competition.id})}">
+            <!-- 이미지 경로를 /images/로 설정 -->
+            <img th:src="@{'/images/' + ${competition.image}}" alt="공모전 이미지" width="150" height="150"/>
+            <span th:text="${competition.name}">공모전 제목</span>
+        </a>
+    </li>
+</ul>
+</body>
+</html>

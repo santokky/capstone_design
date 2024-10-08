@@ -5,11 +5,32 @@
     <title>Delete Account</title>
 </head>
 <body>
-<h1>회원 탈퇴</h1>
-<form th:action="@{/delete-account}" method="post">
-    <!-- 사용자 ID를 히든 필드로 전달 -->
-    <input type="hidden" name="userId" th:value="${userId}" />
-    <button type="submit">회원 탈퇴</button>
-</form>
+<h1>계정 관리</h1>
+
+<!-- 사용자 유형에 따라 다른 버튼 표시 -->
+<!-- 일반 사용자: 회원 탈퇴 버튼 표시 -->
+<div th:if="${user.userType.name() == 'LOCAL'}">
+    <form th:action="@{/delete-account}" method="post">
+        <input type="hidden" name="userId" th:value="${user.id}" />
+        <button type="submit">회원 탈퇴</button>
+    </form>
+</div>
+
+<!-- 구글 사용자: 구글 연동 해제 버튼 표시 -->
+<div th:if="${user.userType.name() == 'OAUTH' and user.provider == 'google'}">
+    <form th:action="@{/unlink-google}" method="post" style="margin-top: 20px;">
+        <input type="hidden" name="userId" th:value="${user.id}" />
+        <button type="submit">Google 연동 해제</button>
+    </form>
+</div>
+
+<!-- 네이버 사용자: 네이버 연동 해제 버튼 표시 -->
+<div th:if="${user.userType.name() == 'OAUTH' and user.provider == 'naver'}">
+    <form th:action="@{/unlink-naver}" method="post" style="margin-top: 20px;">
+        <input type="hidden" name="userId" th:value="${user.id}" />
+        <button type="submit">Naver 연동 해제</button>
+    </form>
+</div>
+
 </body>
 </html>

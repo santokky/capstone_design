@@ -40,4 +40,12 @@ public class CustomOAuth2User implements OAuth2User {
     public Long getId() {
         return user.getId(); // id 반환
     }
+
+    public String getProviderId() {
+        return user.getProvider_id();
+    }
+
+    public User getUser() {
+        return user;
+    }
 }

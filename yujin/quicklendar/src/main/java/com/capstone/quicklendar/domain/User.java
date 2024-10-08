@@ -49,7 +49,7 @@ public class User {
 
     // OAuthUser와의 일대일 관계
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
-    private OAuthUser oauthUser;
+    private OAuthToken oauthToken;
 
     @PrePersist
     protected void onCreate() {
@@ -153,12 +153,12 @@ public class User {
     }
 
     // OAuthUser getter and setter
-    public OAuthUser getOauthUser() {
-        return oauthUser;
+    public OAuthToken getOauthToken() {
+        return oauthToken;
     }
 
-    public void setOauthUser(OAuthUser oauthUser) {
-        this.oauthUser = oauthUser;
+    public void setOauthToken(OAuthToken oauthToken) {
+        this.oauthToken = oauthToken;
     }
 }
 
