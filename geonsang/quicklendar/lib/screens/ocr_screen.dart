@@ -1,9 +1,12 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_ml_kit/google_ml_kit.dart';
 import 'package:intl/intl.dart';
 import '../database_helper.dart'; // 데이터베이스 사용을 위한 헬퍼 파일
+import 'package:http/http.dart' as http;
+import '../env/env.dart'; // env 파일을 import하여 API 키를 사용
 
 class Event {
   final String title;
@@ -24,12 +27,12 @@ class OCRScreenState extends State<OCRScreen> {
   XFile? _image;
   final ImagePicker picker = ImagePicker();
   String scannedText = "";
+  String? detectedTitle;
+  DateTime? detectedDate;
   final DatabaseHelper _dbHelper = DatabaseHelper();
-  DateTime? detectedDate;  // 인식된 날짜
-  String? detectedTitle;   // 인식된 제목
 
   TextEditingController _titleController = TextEditingController();
-  TextEditingController _dateController = TextEditingController();  // 날짜 입력 컨트롤러
+  TextEditingController _dateController = TextEditingController();
 
   @override
   void dispose() {
@@ -38,93 +41,95 @@ class OCRScreenState extends State<OCRScreen> {
     super.dispose();
   }
 
-  // OCR로 텍스트 인식 함수
+  // 이미지 선택 및 텍스트 인식 함수
   Future<void> getImage(ImageSource imageSource) async {
     final XFile? pickedFile = await picker.pickImage(source: imageSource);
     if (pickedFile != null) {
       setState(() {
         _image = XFile(pickedFile.path);
       });
-      getRecognizedText(_image!);
+      await getRecognizedText(_image!);
     }
   }
 
-  // OCR로 텍스트 인식하고 날짜 및 제목 추출
-  void getRecognizedText(XFile image) async {
+  // 텍스트 인식 및 OpenAI API를 통한 제목 및 날짜 추출
+  Future<void> getRecognizedText(XFile image) async {
     final InputImage inputImage = InputImage.fromFilePath(image.path);
-    final textRecognizer =
-    GoogleMlKit.vision.textRecognizer(script: TextRecognitionScript.korean);
+    final textRecognizer = GoogleMlKit.vision.textRecognizer(script: TextRecognitionScript.korean);
     RecognizedText recognizedText = await textRecognizer.processImage(inputImage);
     await textRecognizer.close();
 
-    scannedText = "";
-    for (TextBlock block in recognizedText.blocks) {
-      for (TextLine line in block.lines) {
-        scannedText = scannedText + line.text + "\n";
-      }
-    }
+    setState(() {
+      scannedText = recognizedText.text;
+    });
 
-    // 제목과 날짜 추출 (예시)
-    detectedTitle = _extractTitle(scannedText);
-    detectedDate = _extractDate(scannedText);
+    final refinedData = await extractTitleAndDateWithOpenAI(scannedText);
+    detectedTitle = refinedData['title'];
+    detectedDate = refinedData['date'] != null ? _parseDate(refinedData['date']!) : null;
 
     if (detectedTitle != null || detectedDate != null) {
       _showConfirmationDialog();
     }
-
-    setState(() {});
   }
 
-  // 텍스트에서 공모전 제목 추출 (고급 로직)
-  String? _extractTitle(String text) {
-    // "몇 회" 또는 "yyyy" 연도와 함께 "공모전"을 포함하는 정규 표현식
-    RegExp specificTitleExp = RegExp(r"(\d{1,2}회\s+[\s\S]*?공모전|\d{4}\s+[\s\S]*?공모전)", multiLine: true);
-    Iterable<Match> specificMatches = specificTitleExp.allMatches(text);
+  // 다양한 날짜 형식 파싱 함수
+  DateTime? _parseDate(String date) {
+    List<String> formats = [
+      'yyyy-MM-dd', 'yyyy.MM.dd', 'yyyy/MM/dd', 'yyyy년 MM월 dd일'
+    ];
 
-    // 특정 패턴에 맞는 제목이 있다면 반환
-    for (var match in specificMatches) {
-      // 줄바꿈 문자를 공백으로 대체하여 반환
-      return match.group(0)?.replaceAll('\n', ' ')?.trim();
-    }
-
-    // 위의 특정 형식에 맞지 않을 경우, 공모전 앞의 최대 10자 추출로 변경하여 더 많은 컨텍스트를 포함
-    RegExp generalTitleExp = RegExp(r".{0,15}\s*공모전", dotAll: true); // dotAll: true는 줄바꿈 문자를 포함하여 모든 문자를 .에 포함시킴
-    Iterable<Match> generalMatches = generalTitleExp.allMatches(text);
-
-    for (var match in generalMatches) {
-      return match.group(0)?.trim();
-    }
-
-    // 적합한 제목이 없으면 null 반환
-    return null;
-  }
-
-
-  // 텍스트에서 날짜 추출 (예시)
-  DateTime? _extractDate(String text) {
-    // 여러 형식의 날짜를 인식하도록 정규식 확장 (yyyy-mm-dd, yyyy.mm.dd, yyyy/mm/dd, yyyy년 mm월 dd일)
-    RegExp dateExp = RegExp(r"\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{4}년\s?\d{1,2}월\s?\d{1,2}일");
-    Match? match = dateExp.firstMatch(text);
-    if (match != null) {
-      String matchedDate = match.group(0)!;
-
+    for (String format in formats) {
       try {
-        // '-' 또는 '/' 또는 '.'을 구분자로 사용하여 날짜 형식 변환
-        if (matchedDate.contains('년')) {
-          // "yyyy년 mm월 dd일" 형식일 경우 처리
-          return DateFormat('yyyy년 MM월 dd일').parse(matchedDate);
-        } else {
-          // 일반 형식 처리 ("yyyy-MM-dd", "yyyy.MM.dd", "yyyy/MM/dd")
-          return DateFormat('yyyy-MM-dd').parse(matchedDate.replaceAll('.', '-').replaceAll('/', '-'));
-        }
-      } catch (e) {
-        print('날짜 변환 오류: $e');
+        return DateFormat(format).parse(date);
+      } catch (_) {
+        continue;
       }
     }
+
+    print('날짜 형식을 파싱할 수 없습니다: $date');
     return null;
   }
 
-  // 사용자에게 제목과 날짜를 함께 묻는 다이얼로그
+  // OpenAI API로 제목과 날짜 추출 함수
+  Future<Map<String, String?>> extractTitleAndDateWithOpenAI(String text) async {
+    final apiKey = Env.apiKey;
+    final url = Uri.parse('https://api.openai.com/v1/chat/completions');
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $apiKey',
+      },
+      body: jsonEncode({
+        'model': 'gpt-4',
+        'messages': [
+          {'role': 'system', 'content': 'You are a helpful assistant.'},
+          {'role': 'user', 'content': 'Extract the contest title and date from the following text in Korean:\n$text\n\nPlease return the output in this format:\n공모전 제목: <title>\n공모전 날짜: <date>'}
+        ],
+        'max_tokens': 100,
+        'temperature': 0.2,
+      }),
+    );
+
+    final responseBody = utf8.decode(response.bodyBytes);
+    final responseData = jsonDecode(responseBody);
+
+    if (responseData.containsKey('error')) {
+      print('API 오류: ${responseData['error']['message']}');
+      return {'title': null, 'date': null};
+    }
+
+    final completionText = responseData['choices'][0]['message']['content'];
+    print('API 응답 텍스트: $completionText');
+
+    final title = RegExp(r'공모전 제목: (.+)').firstMatch(completionText)?.group(1)?.trim();
+    final dateString = RegExp(r'공모전 날짜: (.+)').firstMatch(completionText)?.group(1)?.trim();
+
+    return {'title': title, 'date': dateString};
+  }
+
+  // 사용자 확인 다이얼로그
   void _showConfirmationDialog() {
     showDialog(
       context: context,
@@ -135,8 +140,7 @@ class OCRScreenState extends State<OCRScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (detectedTitle != null) Text("공모전 제목: $detectedTitle"),
-              if (detectedDate != null)
-                Text("공모전 일정: ${DateFormat('yyyy-MM-dd').format(detectedDate!)}"),
+              if (detectedDate != null) Text("공모전 일정: ${DateFormat('yyyy-MM-dd').format(detectedDate!)}"),
               if (detectedTitle == null && detectedDate == null)
                 Text("공모전 정보가 없습니다."),
               SizedBox(height: 20),
@@ -147,14 +151,14 @@ class OCRScreenState extends State<OCRScreen> {
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                _showManualInputDialog(); // 사용자가 직접 입력하는 창을 표시
+                _showManualInputDialog();
               },
               child: Text("아니요"),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                _addEventToCalendar(); // 캘린더에 일정 추가
+                _addEventToCalendar();
               },
               child: Text("예"),
             ),
@@ -164,10 +168,10 @@ class OCRScreenState extends State<OCRScreen> {
     );
   }
 
-  // 직접 입력할 수 있는 창을 표시하는 함수
+  // 수동 입력 다이얼로그
   void _showManualInputDialog() {
-    _titleController.clear();  // 제목 필드 초기화
-    _dateController.clear();   // 날짜 필드 초기화
+    _titleController.clear();
+    _dateController.clear();
 
     showDialog(
       context: context,
@@ -190,13 +194,13 @@ class OCRScreenState extends State<OCRScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // 취소 버튼
+                Navigator.pop(context);
               },
               child: Text("취소"),
             ),
             TextButton(
               onPressed: () {
-                _addManualEventToCalendar(); // 직접 입력한 정보로 캘린더에 일정 추가
+                _addManualEventToCalendar();
                 Navigator.pop(context);
               },
               child: Text("추가"),
@@ -207,7 +211,7 @@ class OCRScreenState extends State<OCRScreen> {
     );
   }
 
-  // 직접 입력한 이벤트를 캘린더에 추가하는 함수
+  // 수동 입력 이벤트 추가 함수
   void _addManualEventToCalendar() async {
     final manualTitle = _titleController.text;
     final manualDateText = _dateController.text;
@@ -215,42 +219,26 @@ class OCRScreenState extends State<OCRScreen> {
     if (manualTitle.isNotEmpty && manualDateText.isNotEmpty) {
       try {
         final manualDate = DateFormat('yyyy-MM-dd').parse(manualDateText);
+        final event = {'title': manualTitle, 'description': '사용자가 입력한 공모전', 'date': manualDate.toIso8601String()};
 
-        final event = {
-          'title': manualTitle,
-          'description': '사용자가 입력한 공모전',
-          'date': manualDate.toIso8601String(),
-        };
         await _dbHelper.insertEvent(event);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('일정이 추가되었습니다!')),
-        );
-        _clearDetectedData(); // 인식된 데이터 초기화
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('일정이 추가되었습니다!')));
+        _clearDetectedData();
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('날짜 형식이 올바르지 않습니다.')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('날짜 형식이 올바르지 않습니다.')));
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('모든 정보를 입력해주세요.')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('모든 정보를 입력해주세요.')));
     }
   }
 
   // 캘린더에 이벤트 추가
   Future<void> _addEventToCalendar() async {
     if (detectedTitle != null && detectedDate != null) {
-      final event = {
-        'title': detectedTitle!,
-        'description': 'OCR로 인식된 공모전',
-        'date': detectedDate!.toIso8601String(),
-      };
+      final event = {'title': detectedTitle!, 'description': 'OCR로 인식된 공모전', 'date': detectedDate!.toIso8601String()};
       await _dbHelper.insertEvent(event);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('일정이 추가되었습니다!')),
-      );
-      _clearDetectedData(); // 인식된 데이터 초기화
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('일정이 추가되었습니다!')));
+      _clearDetectedData();
     }
   }
 
@@ -259,8 +247,8 @@ class OCRScreenState extends State<OCRScreen> {
     setState(() {
       detectedTitle = null;
       detectedDate = null;
-      _titleController.clear(); // 수동 입력 필드 초기화
-      _dateController.clear(); // 날짜 필드 초기화
+      _titleController.clear();
+      _dateController.clear();
     });
   }
 
@@ -281,7 +269,6 @@ class OCRScreenState extends State<OCRScreen> {
       ),
     );
   }
-
   Widget _buildPhotoArea() {
     return _image != null
         ? Container(
