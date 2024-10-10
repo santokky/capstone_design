@@ -52,24 +52,41 @@ class OCRScreenState extends State<OCRScreen> {
     }
   }
 
-  // 텍스트 인식 및 OpenAI API를 통한 제목 및 날짜 추출
+  // 텍스트 인식 및 제목과 날짜 추출
   Future<void> getRecognizedText(XFile image) async {
     final InputImage inputImage = InputImage.fromFilePath(image.path);
     final textRecognizer = GoogleMlKit.vision.textRecognizer(script: TextRecognitionScript.korean);
     RecognizedText recognizedText = await textRecognizer.processImage(inputImage);
     await textRecognizer.close();
 
-    setState(() {
-      scannedText = recognizedText.text;
-    });
+    // OCR 텍스트의 줄바꿈을 공백으로 변환하여 한 줄로 정리
+    scannedText = recognizedText.text.replaceAll('\n', ' ');
 
+    setState(() {});
+
+    // 제목을 정규식으로 먼저 추출
+    detectedTitle = extractContestTitle(scannedText);
+
+    // 제목을 찾지 못한 경우에만 OpenAI API 호출
     final refinedData = await extractTitleAndDateWithOpenAI(scannedText);
-    detectedTitle = refinedData['title'];
+    if (detectedTitle == null || detectedTitle!.isEmpty) {
+      detectedTitle = refinedData['title'];
+    }
+
+    // OpenAI API에서 날짜 추출 및 파싱
     detectedDate = refinedData['date'] != null ? _parseDate(refinedData['date']!) : null;
 
     if (detectedTitle != null || detectedDate != null) {
       _showConfirmationDialog();
     }
+  }
+
+
+  // 공모전 제목을 파싱하는 함수
+  String? extractContestTitle(String text) {
+    RegExp titleExp = RegExp(r"(제\s?\d{1,2}\s?회\s?.*?공모전|\d{4}\s?.*?공모전)", caseSensitive: false);
+    final match = titleExp.firstMatch(text);
+    return match?.group(0)?.trim();
   }
 
   // 다양한 날짜 형식 파싱 함수
@@ -90,7 +107,7 @@ class OCRScreenState extends State<OCRScreen> {
     return null;
   }
 
-  // OpenAI API로 제목과 날짜 추출 함수
+  // OpenAI API로 제목과 날짜를 추출하는 함수
   Future<Map<String, String?>> extractTitleAndDateWithOpenAI(String text) async {
     final apiKey = Env.apiKey;
     final url = Uri.parse('https://api.openai.com/v1/chat/completions');
@@ -102,10 +119,10 @@ class OCRScreenState extends State<OCRScreen> {
         'Authorization': 'Bearer $apiKey',
       },
       body: jsonEncode({
-        'model': 'gpt-4',
+        'model': 'gpt-3.5-turbo',
         'messages': [
           {'role': 'system', 'content': 'You are a helpful assistant.'},
-          {'role': 'user', 'content': 'Extract the contest title and date from the following text in Korean:\n$text\n\nPlease return the output in this format:\n공모전 제목: <title>\n공모전 날짜: <date>'}
+          {'role': 'user', 'content': 'Extract the contest date and title from the following text in Korean:\n$text\n\nPlease return the output in this format:\n공모전 제목: <title>\n공모전 날짜: <date>'}
         ],
         'max_tokens': 100,
         'temperature': 0.2,
