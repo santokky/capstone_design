@@ -18,35 +18,85 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'events.db');
     return openDatabase(
       path,
-      version: 1,
+      version: 2, // 버전 업그레이드
       onCreate: (db, version) {
         return db.execute(
-          'CREATE TABLE events(id INTEGER PRIMARY KEY, title TEXT, description TEXT, date TEXT)',
+          '''
+          CREATE TABLE events(
+            id INTEGER PRIMARY KEY,
+            title TEXT,
+            organizer TEXT,
+            description TEXT,
+            location TEXT,
+            application_start_date TEXT,
+            application_end_date TEXT,
+            contest_start_date TEXT,
+            contest_end_date TEXT,
+            application_link TEXT,
+            contact TEXT,
+            category TEXT,
+            field TEXT
+          )
+          ''',
         );
+      },
+      onUpgrade: (db, oldVersion, newVersion) {
+        if (oldVersion < 2) {
+          db.execute('ALTER TABLE events ADD COLUMN organizer TEXT');
+          db.execute('ALTER TABLE events ADD COLUMN description TEXT');
+          db.execute('ALTER TABLE events ADD COLUMN location TEXT');
+          db.execute('ALTER TABLE events ADD COLUMN application_start_date TEXT');
+          db.execute('ALTER TABLE events ADD COLUMN application_end_date TEXT');
+          db.execute('ALTER TABLE events ADD COLUMN contest_start_date TEXT');
+          db.execute('ALTER TABLE events ADD COLUMN contest_end_date TEXT');
+          db.execute('ALTER TABLE events ADD COLUMN application_link TEXT');
+          db.execute('ALTER TABLE events ADD COLUMN contact TEXT');
+          db.execute('ALTER TABLE events ADD COLUMN category TEXT');
+          db.execute('ALTER TABLE events ADD COLUMN field TEXT');
+        }
       },
     );
   }
 
+  // 이벤트 삽입
   Future<int> insertEvent(Map<String, dynamic> event) async {
     final db = await database;
     return await db.insert('events', event);
   }
 
+  // 모든 이벤트 조회
   Future<List<Map<String, dynamic>>> queryAllEvents() async {
     final db = await database;
     return await db.query('events');
   }
 
+  // 특정 이벤트 삭제
   Future<int> deleteEvent(int id) async {
     final db = await database;
     return await db.delete('events', where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<int> updateEvent(int id, String title, String description) async {
+  // 특정 이벤트 수정
+  Future<int> updateEvent(int id, String title, String description, String organizer, String location,
+      String applicationStartDate, String applicationEndDate, String contestStartDate,
+      String contestEndDate, String applicationLink, String contact, String category, String field) async {
     final db = await database;
     return await db.update(
       'events',
-      {'title': title, 'description': description},
+      {
+        'title': title,
+        'organizer': organizer,
+        'description': description,
+        'location': location,
+        'application_start_date': applicationStartDate,
+        'application_end_date': applicationEndDate,
+        'contest_start_date': contestStartDate,
+        'contest_end_date': contestEndDate,
+        'application_link': applicationLink,
+        'contact': contact,
+        'category': category,
+        'field': field,
+      },
       where: 'id = ?',
       whereArgs: [id],
     );

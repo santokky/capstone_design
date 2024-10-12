@@ -78,6 +78,7 @@ dependencies:
   envied: ^0.5.4+1
   build_runner: ^2.0.0
   flutter_dotenv: ^5.0.2
+  http: ^1.2.2
 
 
 
@@ -122,6 +123,8 @@ flutter:
     - assets/img/sample_poster2.png
     - assets/img/sample_poster3.jpg
     - assets/img/sample_poster4.jpg
+    - assets/img/sample_poster5.png
+    - assets/img/sample_poster6.png
     - assets/img/slider_sample1.png
     - assets/img/slider_sample2.png
     - assets/img/slider_sample3.png
