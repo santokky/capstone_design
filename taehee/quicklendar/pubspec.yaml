@@ -73,6 +73,11 @@ dependencies:
   url_launcher_platform_interface: 2.3.2
   carousel_slider: ^4.0.0
   image_picker: ^1.1.2
+  dart_openai: ^5.1.0
+  google_ml_kit: ^0.16.2
+  envied: ^0.5.4+1
+  build_runner: ^2.0.0
+  flutter_dotenv: ^5.0.2
 
 
 
@@ -85,6 +90,8 @@ dev_dependencies:
   lints: 4.0.0
   flutter_test:
     sdk: flutter
+  envied_generator: ^0.5.4+1
+  build_runner: ^2.4.11
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
