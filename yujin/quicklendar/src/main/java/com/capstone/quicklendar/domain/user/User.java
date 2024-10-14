@@ -1,9 +1,11 @@
-package com.capstone.quicklendar.domain;
+package com.capstone.quicklendar.domain.user;
 
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -47,9 +49,16 @@ public class User {
     @Column(name = "updated_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
     private LocalDateTime updatedAt;
 
-    // OAuthUser와의 일대일 관계
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private OAuthToken oauthToken;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<Role> roles = new HashSet<>();
 
     @PrePersist
     protected void onCreate() {
@@ -160,5 +169,12 @@ public class User {
     public void setOauthToken(OAuthToken oauthToken) {
         this.oauthToken = oauthToken;
     }
-}
 
+    public Set<Role> getRoles() {
+        return roles;
+    }
+
+    public void setRoles(Set<Role> roles) {
+        this.roles = roles;
+    }
+}

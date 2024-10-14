@@ -1,4 +1,4 @@
-package com.capstone.quicklendar.domain;
+package com.capstone.quicklendar.domain.user;
 
 import jakarta.persistence.*;
 import lombok.*;

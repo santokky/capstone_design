@@ -1,11 +1,13 @@
-package com.capstone.quicklendar.domain;
+package com.capstone.quicklendar.domain.user;
 
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class CustomOAuth2User implements OAuth2User {
 
@@ -19,8 +21,9 @@ public class CustomOAuth2User implements OAuth2User {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // 기본적으로 ROLE_USER 권한 부여
-        return List.of(() -> "ROLE_USER");
+        return user.getRoles().stream()
+                .map(role -> new SimpleGrantedAuthority(role.getName()))
+                .collect(Collectors.toList());
     }
 
     @Override

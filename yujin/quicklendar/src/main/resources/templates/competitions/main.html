@@ -3,18 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <title>공모전 목록</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
+
 <h1>공모전 목록</h1>
-<ul>
+
+<!-- 필터링 폼 -->
+<form id="filterForm">
+    <div>
+        <label for="category">카테고리:</label>
+        <select id="category" name="category">
+            <option value="">전체</option>
+            <option value="CREATIVE_ARTS_AND_DESIGN">Creative Arts and Design</option>
+            <option value="TECHNOLOGY_AND_ENGINEERING">Technology and Engineering</option>
+            <option value="BUSINESS_AND_ACADEMIC">Business and Academic</option>
+        </select>
+    </div>
+
+    <div>
+        <label for="competitionType">공모전 유형:</label>
+        <select id="competitionType" name="competitionType">
+            <option value="">전체</option>
+            <option value="COMPETITION">Competition</option>
+            <option value="ACTIVITY">Activity</option>
+        </select>
+    </div>
+
+    <div>
+        <label for="host">주최자:</label>
+        <select id="host" name="host">
+            <option value="">전체</option>
+            <option th:each="host : ${hosts}" th:value="${host}" th:text="${host}">주최자 목록</option>
+        </select>
+    </div>
+
+    <button type="submit">필터링</button>
+</form>
+
+<!-- 정렬 버튼들 -->
+<div>
+    <button id="sortLikes">좋아요 순 정렬</button>
+    <button id="sortCreatedAt">등록일 순 정렬</button>
+</div>
+
+<!-- 공모전 목록 -->
+<ul id="competitionList">
     <li th:each="competition : ${competitions}">
-        <!-- 이미지를 클릭하면 상세 페이지로 이동 -->
         <a th:href="@{/competitions/details/{id}(id=${competition.id})}">
-            <!-- 이미지 경로를 /images/로 설정 -->
             <img th:src="@{'/images/' + ${competition.image}}" alt="공모전 이미지" width="150" height="150"/>
             <span th:text="${competition.name}">공모전 제목</span>
         </a>
+
+        <!-- 좋아요 수를 CompetitionLike 엔티티를 통해 계산 -->
+        <p>좋아요: <span th:text="${competition.likeCount}">0</span></p>
+        <p>등록일: <span th:text="${competition.createdAt}">등록일</span></p>
     </li>
 </ul>
+
+<script>
+    $(document).ready(function() {
+        // 정렬 버튼 클릭 시 페이지 이동
+        $('#sortLikes').on('click', function() {
+            window.location.href = "/competitions/main?sort=likes";
+        });
+
+        $('#sortCreatedAt').on('click', function() {
+            window.location.href = "/competitions/main?sort=createdAt";
+        });
+
+        // 필터링 폼 서브밋
+        $('#filterForm').on('submit', function(event) {
+            event.preventDefault();
+            $.ajax({
+                url: '/competitions/filter',
+                type: 'GET',
+                data: $(this).serialize(),
+                success: function(response) {
+                    var competitionList = $('#competitionList');
+                    competitionList.empty();
+                    $.each(response, function(index, competition) {
+                        var listItem = `
+                            <li>
+                                <a href="/competitions/details/${competition.id}">
+                                    <img src="/images/${competition.image}" alt="공모전 이미지" width="150" height="150"/>
+                                    <span>${competition.name}</span>
+                                </a>
+                                <p>좋아요: ${competition.likeCount}</p>
+                                <p>등록일: ${competition.createdAt}</p>
+                            </li>
+                        `;
+                        competitionList.append(listItem);
+                    });
+                },
+                error: function(error) {
+                    console.log("Error:", error);
+                }
+            });
+        });
+    });
+</script>
+
 </body>
 </html>

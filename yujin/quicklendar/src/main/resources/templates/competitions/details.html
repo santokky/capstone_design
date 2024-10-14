@@ -18,9 +18,41 @@
 <p><strong>장소:</strong> <span th:text="${competition.location != null ? competition.location : '해당 정보 없음'}">장소 정보</span></p>
 <p><strong>문의 연락처:</strong> <span th:text="${competition.support != null ? competition.support : '해당 정보 없음'}">문의 정보</span></p>
 <p><strong>공모전 타입:</strong> <span th:text="${competition.competitionType != null ? competition.competitionType.getCompetitionTypeName() : '해당 정보 없음'}">공모전 타입 정보</span></p>
+
+<!-- 좋아요 개수 -->
+<p><strong>좋아요 수:</strong> <span th:text="${competition.likeCount}">0</span></p>
+
+<!-- 좋아요/좋아요 취소 버튼 -->
+<form id="likeForm" th:action="@{${isLiked} ? '/competitions/unlike/' + ${competition.id} : '/competitions/like/' + ${competition.id}}" method="post">
+    <button type="submit" th:text="${isLiked} ? '좋아요 취소' : '좋아요'">좋아요</button>
+</form>
+
 <p><strong>상세 설명:</strong></p>
 <p th:text="${competition.description != null ? competition.description : '해당 정보 없음'}">공모전 상세 설명</p>
 
 <a href="/competitions/main">목록으로 돌아가기</a>
+
+<!-- JWT 토큰 추가 -->
+<script>
+    document.getElementById('likeForm').addEventListener('submit', function(event) {
+      event.preventDefault();  // 기본 제출 방지
+      const token = localStorage.getItem('jwtToken');
+
+      fetch(this.action, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }).then(response => {
+        if (response.ok) {
+          window.location.reload();  // 요청 성공 시 페이지 새로고침
+        } else {
+          alert('좋아요 처리에 실패했습니다.');
+        }
+      });
+    });
+</script>
+
 </body>
 </html>

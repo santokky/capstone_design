@@ -6,7 +6,7 @@
 </head>
 <body>
 <h1>프로필 수정</h1>
-<form th:action="@{/profile}" method="post">
+<form id="profileForm" th:action="@{/profile}" method="post">
     <!-- 이메일은 읽기 전용 -->
     <label for="email">이메일:</label>
     <input type="email" id="email" name="email" th:value="${user.email}" readonly>
@@ -32,5 +32,29 @@
 
     <button type="submit">프로필 수정</button>
 </form>
+
+<!-- JWT 토큰 추가 -->
+<script>
+    document.getElementById('profileForm').addEventListener('submit', function(event) {
+      event.preventDefault();  // 기본 제출 방지
+      const token = localStorage.getItem('jwtToken');
+
+      fetch(this.action, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: new FormData(this)
+      }).then(response => {
+        if (response.ok) {
+          window.location.reload();  // 요청 성공 시 페이지 새로고침
+        } else {
+          alert('프로필 수정에 실패했습니다.');
+        }
+      });
+    });
+</script>
+
 </body>
 </html>

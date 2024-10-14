@@ -1,9 +1,13 @@
 package com.capstone.quicklendar.config;
 
-import com.capstone.quicklendar.repository.OAuthUserRepository;
-import com.capstone.quicklendar.repository.UserRepository;
-import com.capstone.quicklendar.service.CustomOAuth2UserService;
-import com.capstone.quicklendar.service.CustomUserDetailsService;
+import com.capstone.quicklendar.repository.user.OAuthUserRepository;
+import com.capstone.quicklendar.repository.user.UserRepository;
+import com.capstone.quicklendar.service.user.CustomOAuth2UserService;
+import com.capstone.quicklendar.service.user.CustomUserDetailsService;
+import com.capstone.quicklendar.util.JwtAuthenticationFilter;
+import com.capstone.quicklendar.util.JwtTokenProvider;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.RequestEntity;
@@ -20,35 +24,45 @@ import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResp
 import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequestEntityConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.util.MultiValueMap;
 
 @Configuration
 public class SecurityConfig {
 
     private final CustomUserDetailsService customUserDetailsService;
+    private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
     private final OAuthUserRepository oauthUserRepository;
 
-    public SecurityConfig(CustomUserDetailsService customUserDetailsService, UserRepository userRepository, OAuthUserRepository oauthUserRepository) {
+    @Autowired
+    public SecurityConfig(CustomUserDetailsService customUserDetailsService, JwtTokenProvider jwtTokenProvider,
+                          UserRepository userRepository, OAuthUserRepository oauthUserRepository) {
         this.customUserDetailsService = customUserDetailsService;
+        this.jwtTokenProvider = jwtTokenProvider;
         this.userRepository = userRepository;
         this.oauthUserRepository = oauthUserRepository;
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtTokenProvider jwtTokenProvider) throws Exception {
         http
+                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, customUserDetailsService), UsernamePasswordAuthenticationFilter.class)
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/", "/index", "/login", "/join", "/resources/**", "/oauth2/**", "/competitions/main" ,"/images/**").permitAll()
+                        .requestMatchers("/", "/index", "/login", "/join", "/resources/**", "/oauth2/**", "/competitions/main", "/competitions/filter", "/competitions/details/**", "/images/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth -> oauth
                         .loginPage("/login")
                         .tokenEndpoint(token -> token
-                                .accessTokenResponseClient(accessTokenResponseClient()) // 커스텀 클라이언트 사용
+                                .accessTokenResponseClient(accessTokenResponseClient())
                         )
                         .userInfoEndpoint(userInfo -> userInfo
-                                .userService(customOAuth2UserService())  // CustomOAuth2UserService 사용
+                                .userService(customOAuth2UserService())
                         )
                         .defaultSuccessUrl("/", true)
                         .failureUrl("/login?error=true")
@@ -58,11 +72,7 @@ public class SecurityConfig {
                         .defaultSuccessUrl("/", true)
                         .permitAll()
                 )
-                .logout(logout -> logout.permitAll())
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                        .maximumSessions(1)
-                );
+                .logout(logout -> logout.permitAll());
 
         return http.build();
     }
@@ -121,4 +131,3 @@ public class SecurityConfig {
     }
 
 }
-

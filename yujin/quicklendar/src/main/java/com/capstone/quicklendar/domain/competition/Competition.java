@@ -1,11 +1,15 @@
-package com.capstone.quicklendar.domain;
+package com.capstone.quicklendar.domain.competition;
 
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "competitions")
@@ -46,7 +50,6 @@ public class Competition {
     @Column
     private String support;
 
-    // 추가된 부분: 주최자 필드
     @Column(nullable = false)
     private String host;
 
@@ -58,11 +61,21 @@ public class Competition {
     @Column(name = "competition_type", nullable = false)
     private CompetitionType competitionType;
 
-    // Builder 패턴을 사용하여 인스턴스 생성
+    @Column(nullable = false, updatable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now(); // 엔티티가 처음 생성될 때 현재 시간을 설정
+    }
+
+    @OneToMany(mappedBy = "competition", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<CompetitionLike> likes = new HashSet<>();
+
     @Builder
     public Competition(String name, String description, LocalDate startDate, LocalDate endDate, LocalDate requestStartDate,
                        LocalDate requestEndDate, String requestPath, String location, String image, String support,
-                       Category category, CompetitionType competitionType, String host) {
+                       Category category, CompetitionType competitionType, String host, LocalDateTime createdAt) {
         this.name = name;
         this.description = description;
         this.startDate = startDate;
@@ -75,10 +88,10 @@ public class Competition {
         this.support = support;
         this.category = category;
         this.competitionType = competitionType;
-        this.host = host;  // 주최자 추가
+        this.host = host;
+        this.createdAt = createdAt != null ? createdAt : LocalDateTime.now();  // 생성 시 시간이 주어지지 않으면 현재 시간으로 설정
     }
 
-    // Getter 및 Setter 메서드들 (Lombok 사용 안 함)
     public Long getId() {
         return id;
     }
@@ -185,6 +198,28 @@ public class Competition {
 
     public void setHost(String host) {
         this.host = host;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public int getLikeCount() {
+        return likes.size();
+    }
+
+    public void addLike(CompetitionLike like) {
+        likes.add(like);
+        like.setCompetition(this);
+    }
+
+    public void removeLike(CompetitionLike like) {
+        likes.remove(like);
+        like.setCompetition(null);
     }
 }
 

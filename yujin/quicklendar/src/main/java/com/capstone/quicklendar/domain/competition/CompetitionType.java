@@ -1,4 +1,4 @@
-package com.capstone.quicklendar.domain;
+package com.capstone.quicklendar.domain.competition;
 
 public enum CompetitionType {
     COMPETITION("Competition"),

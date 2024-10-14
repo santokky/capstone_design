@@ -1,8 +1,8 @@
-package com.capstone.quicklendar.service;
+package com.capstone.quicklendar.service.user;
 
-import com.capstone.quicklendar.domain.User;
-import com.capstone.quicklendar.domain.UserType;
-import com.capstone.quicklendar.repository.UserRepository;
+import com.capstone.quicklendar.domain.user.User;
+import com.capstone.quicklendar.domain.user.UserType;
+import com.capstone.quicklendar.repository.user.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

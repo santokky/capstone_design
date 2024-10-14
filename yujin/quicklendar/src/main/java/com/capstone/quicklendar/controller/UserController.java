@@ -1,30 +1,48 @@
 package com.capstone.quicklendar.controller;
 
-import com.capstone.quicklendar.domain.CustomOAuth2User;
-import com.capstone.quicklendar.domain.CustomUserDetails;
-import com.capstone.quicklendar.domain.User;
-import com.capstone.quicklendar.service.CustomOAuth2UserService;
-import com.capstone.quicklendar.service.UserService;
+import com.capstone.quicklendar.domain.user.CustomOAuth2User;
+import com.capstone.quicklendar.domain.user.CustomUserDetails;
+import com.capstone.quicklendar.domain.user.User;
+import com.capstone.quicklendar.service.user.CustomOAuth2UserService;
+import com.capstone.quicklendar.service.user.UserService;
+import com.capstone.quicklendar.util.JwtAuthenticationResponse;
+import com.capstone.quicklendar.util.JwtTokenProvider;
+import com.capstone.quicklendar.util.LoginRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.stream.Collectors;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 @Controller
 public class UserController {
 
     private final UserService userService;
     private final CustomOAuth2UserService customOAuth2UserService;
+    private final AuthenticationManager authenticationManager;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Autowired
-    public UserController(UserService userService, CustomOAuth2UserService customOAuth2UserService) {
+    public UserController(UserService userService, CustomOAuth2UserService customOAuth2UserService,
+                          AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider) {
         this.userService = userService;
         this.customOAuth2UserService = customOAuth2UserService;
+        this.authenticationManager = authenticationManager;
+        this.jwtTokenProvider = jwtTokenProvider;
     }
 
     @Autowired
@@ -40,7 +58,7 @@ public class UserController {
     @GetMapping("/join")
     public String showJoinForm(Model model) {
         model.addAttribute("user", new User());
-        return "users/join"; // join.html 렌더링
+        return "users/join";
     }
 
     // 회원가입 처리 POST 요청
@@ -49,17 +67,38 @@ public class UserController {
         try {
             userService.join(user); // 회원가입 로직 실행
             model.addAttribute("message", "회원가입이 완료되었습니다.");
-            return "redirect:/login"; // 회원가입 후 로그인 페이지로 리다이렉트
+            return "redirect:/login";
         } catch (Exception e) {
             model.addAttribute("error", e.getMessage());
-            return "users/join"; // 오류 발생 시 다시 회원가입 페이지로 이동
+            return "users/join";
         }
     }
 
     // 로그인 페이지 GET 요청
     @GetMapping("/login")
     public String showLoginForm() {
-        return "users/login"; // login.html 렌더링
+        return "users/login";
+    }
+
+    // 로그인 처리 POST 요청
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+        try {
+            System.out.println("로그인 시도 이메일: " + loginRequest.getEmail());
+            System.out.println("로그인 시도 비밀번호: " + loginRequest.getPassword());
+
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword())
+            );
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+            String token = jwtTokenProvider.createToken(userDetails.getUsername(), userDetails.getUser().getRoles());
+
+            return ResponseEntity.ok(new JwtAuthenticationResponse(token));
+        } catch (AuthenticationException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or password");
+        }
     }
 
     // 회원 탈퇴 처리 POST 요청 (일반 사용자 + OAuth 사용자)
@@ -224,4 +263,3 @@ public class UserController {
         return "redirect:/login";
     }
 }
-

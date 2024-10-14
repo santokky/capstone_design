@@ -1,6 +1,6 @@
-package com.capstone.quicklendar.repository;
+package com.capstone.quicklendar.repository.user;
 
-import com.capstone.quicklendar.domain.OAuthToken;
+import com.capstone.quicklendar.domain.user.OAuthToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

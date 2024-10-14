@@ -1,10 +1,11 @@
-package com.capstone.quicklendar.service;
+package com.capstone.quicklendar.service.competition;
 
-import com.capstone.quicklendar.domain.Competition;
-import com.capstone.quicklendar.domain.Category;
-import com.capstone.quicklendar.domain.CompetitionType;
-import com.capstone.quicklendar.repository.CompetitionRepository;
+import com.capstone.quicklendar.domain.competition.Competition;
+import com.capstone.quicklendar.domain.competition.Category;
+import com.capstone.quicklendar.domain.competition.CompetitionType;
+import com.capstone.quicklendar.repository.competition.CompetitionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -31,9 +32,26 @@ public class CompetitionService {
         return competitionRepository.findById(id);
     }
 
-    // 카테고리나 타입에 따른 공모전 조회
-    public List<Competition> getCompetitionsByCategoryOrType(Category category, CompetitionType competitionType) {
-        return competitionRepository.findByCategoryOrCompetitionType(category, competitionType);
+    // 카테고리, 타입, 주최자에 따른 필터링된 공모전 조회
+    public List<Competition> filterCompetitions(Category category, CompetitionType competitionType, String host) {
+        if (category != null && competitionType != null && host != null && !host.isEmpty()) {
+            return competitionRepository.findByCategoryAndCompetitionTypeAndHost(category, competitionType, host);
+        } else if (category != null && competitionType != null) {
+            return competitionRepository.findByCategoryAndCompetitionType(category, competitionType);
+        } else if (category != null) {
+            return competitionRepository.findByCategory(category);
+        } else if (competitionType != null) {
+            return competitionRepository.findByCompetitionType(competitionType);
+        } else if (host != null && !host.isEmpty()) {
+            return competitionRepository.findByHost(host);
+        } else {
+            return competitionRepository.findAll();
+        }
+    }
+
+    // 모든 공모전의 host 목록 조회 (중복 제거)
+    public List<String> getAllHosts() {
+        return competitionRepository.findDistinctHosts();
     }
 
     // 정렬된 공모전 목록 조회
@@ -71,5 +89,15 @@ public class CompetitionService {
     // 공모전 업데이트
     public void updateCompetition(Competition competition) {
         competitionRepository.save(competition);
+    }
+
+    // 좋아요 수로 내림차순 정렬된 공모전 목록 조회
+    public List<Competition> getCompetitionsSortedByLikes() {
+        return competitionRepository.findAll(Sort.by(Sort.Direction.DESC, "likes"));
+    }
+
+    // 등록일(createdAt)로 내림차순 정렬된 공모전 목록 조회
+    public List<Competition> getCompetitionsSortedByCreatedAt() {
+        return competitionRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
     }
 }
