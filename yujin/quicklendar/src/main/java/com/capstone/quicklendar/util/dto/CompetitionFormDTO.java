@@ -1,4 +1,4 @@
-package com.capstone.quicklendar.util;
+package com.capstone.quicklendar.util.dto;
 
 import com.capstone.quicklendar.domain.competition.Category;
 import com.capstone.quicklendar.domain.competition.CompetitionType;

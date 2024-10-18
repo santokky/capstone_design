@@ -161,7 +161,6 @@ public class User {
         this.updatedAt = updatedAt;
     }
 
-    // OAuthUser getter and setter
     public OAuthToken getOauthToken() {
         return oauthToken;
     }

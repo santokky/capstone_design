@@ -8,14 +8,13 @@
 <h1>Quicklendar</h1>
 
 <h3>사용자</h3>
-<ul>
-    <!-- 회원가입 페이지로 이동 -->
-    <li><a th:href="@{/join}">회원가입</a></li>
-    <li><a th:href="@{/login}">로그인</a></li>
-    <li><a th:href="@{/delete-account}">회원탈퇴</a></li>
-    <li><a th:href="@{/profile}">프로필 수정</a></li>
-    <li><a th:href="@{/logout-page}">로그아웃</a></li>
-</ul>
+<form action="https://nid.naver.com/oauth2.0/authorize" method="POST">
+    <input type="hidden" name="response_type" value="code">
+    <input type="hidden" name="client_id" value="rFe2vahJ2u3T896kiX1c">
+    <input type="hidden" name="redirect_uri" value="http://localhost:8080/api/users/oauth2/login/naver">
+    <input type="hidden" name="state" value="state12345">
+    <button type="submit">네이버로 로그인하기</button>
+</form>
 <h3>공모전</h3>
 <ul>
     <li><a th:href="@{/competitions/main}">공모전 목록 보기</a></li>

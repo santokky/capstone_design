@@ -5,7 +5,7 @@ import com.capstone.quicklendar.domain.competition.Competition;
 import com.capstone.quicklendar.domain.competition.CompetitionType;
 import com.capstone.quicklendar.service.competition.CompetitionLikeService;
 import com.capstone.quicklendar.service.competition.CompetitionService;
-import com.capstone.quicklendar.util.CompetitionFormDTO;
+import com.capstone.quicklendar.util.dto.CompetitionFormDTO;
 import com.capstone.quicklendar.util.ImageHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -6,20 +6,28 @@ import com.capstone.quicklendar.domain.user.User;
 import com.capstone.quicklendar.domain.user.UserType;
 import com.capstone.quicklendar.repository.user.OAuthUserRepository;
 import com.capstone.quicklendar.repository.user.UserRepository;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import com.capstone.quicklendar.util.dto.OAuthLoginRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.*;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResponseClient;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AccessTokenResponse;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationExchange;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationResponse;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -29,12 +37,43 @@ import java.util.Map;
 @Service
 public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
 
+    private final RestTemplate restTemplate;
     private final UserRepository userRepository;
     private final OAuthUserRepository oauthUserRepository;
 
-    public CustomOAuth2UserService(UserRepository userRepository, OAuthUserRepository oauthUserRepository) {
+    @Autowired
+    public CustomOAuth2UserService(UserRepository userRepository,
+                                   OAuthUserRepository oauthUserRepository) {
+        this.restTemplate = new RestTemplate();
         this.userRepository = userRepository;
         this.oauthUserRepository = oauthUserRepository;
+    }
+
+    public String getAccessToken(String authorizationCode, String state) {
+        String tokenUrl = "https://nid.naver.com/oauth2.0/token";
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("grant_type", "authorization_code");
+        params.add("client_id", "YOUR_CLIENT_ID");
+        params.add("client_secret", "YOUR_CLIENT_SECRET");
+        params.add("code", authorizationCode);
+        params.add("state", state);
+
+        HttpHeaders headers = new HttpHeaders();
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+        ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
+        Map<String, Object> body = response.getBody();
+
+        return (String) body.get("access_token");
+    }
+
+    public Map<String, Object> getNaverUserProfile(String accessToken) {
+        String profileUrl = "https://openapi.naver.com/v1/nid/me";
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", "Bearer " + accessToken);
+
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        ResponseEntity<Map> response = restTemplate.exchange(profileUrl, HttpMethod.GET, entity, Map.class);
+        return response.getBody();
     }
 
     @Override
@@ -42,7 +81,6 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         OAuth2UserService<OAuth2UserRequest, OAuth2User> delegate = new DefaultOAuth2UserService();
         OAuth2User oAuth2User = delegate.loadUser(userRequest);
 
-        // 제공자 정보 가져오기 (예: "naver", "google")
         final String provider = userRequest.getClientRegistration().getRegistrationId();
         final Map<String, Object> attributes = oAuth2User.getAttributes();
         final String providerId;
@@ -135,7 +173,6 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
             throw new RuntimeException("연동 해제 실패");
         }
     }
-
 
     // 구글 연동 해제 메서드
     private void revokeGoogleToken(String accessToken, String refreshToken) {

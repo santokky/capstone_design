@@ -1,4 +1,4 @@
-package com.capstone.quicklendar.util;
+package com.capstone.quicklendar.util.jwt;
 
 public class JwtAuthenticationResponse {
     private String token;
