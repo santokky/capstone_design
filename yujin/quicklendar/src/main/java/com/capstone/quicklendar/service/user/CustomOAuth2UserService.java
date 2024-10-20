@@ -49,20 +49,39 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         this.oauthUserRepository = oauthUserRepository;
     }
 
-    public String getAccessToken(String authorizationCode, String state) {
-        String tokenUrl = "https://nid.naver.com/oauth2.0/token";
+    public String getAccessToken(String providerType, String authorizationCode, String state) {
+        String tokenUrl;
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("grant_type", "authorization_code");
-        params.add("client_id", "YOUR_CLIENT_ID");
-        params.add("client_secret", "YOUR_CLIENT_SECRET");
-        params.add("code", authorizationCode);
-        params.add("state", state);
 
+        if ("google".equalsIgnoreCase(providerType)) {
+            // Google 토큰 URL 및 파라미터 설정
+            tokenUrl = "https://oauth2.googleapis.com/token";
+            params.add("grant_type", "authorization_code");
+            params.add("client_id", "");
+            params.add("client_secret", "");
+            params.add("code", authorizationCode);
+            params.add("redirect_uri", "YOUR_GOOGLE_REDIRECT_URI");  // Google에서는 redirect_uri가 필요함
+        } else if ("naver".equalsIgnoreCase(providerType)) {
+            // Naver 토큰 URL 및 파라미터 설정
+            tokenUrl = "https://nid.naver.com/oauth2.0/token";
+            params.add("grant_type", "authorization_code");
+            params.add("client_id", "");
+            params.add("client_secret", "");
+            params.add("code", authorizationCode);
+            params.add("state", state);
+        } else {
+            throw new IllegalArgumentException("Unsupported provider: " + providerType);
+        }
+
+        // 공통 헤더 설정
         HttpHeaders headers = new HttpHeaders();
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+
+        // 토큰 요청 및 응답 처리
         ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
         Map<String, Object> body = response.getBody();
 
+        // 액세스 토큰 반환
         return (String) body.get("access_token");
     }
 

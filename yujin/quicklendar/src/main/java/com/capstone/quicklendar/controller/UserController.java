@@ -11,6 +11,7 @@ import com.capstone.quicklendar.util.dto.UpdateProfileRequest;
 import com.capstone.quicklendar.util.jwt.JwtAuthenticationResponse;
 import com.capstone.quicklendar.util.jwt.JwtTokenProvider;
 import com.capstone.quicklendar.util.dto.LoginRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +28,7 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 import com.capstone.quicklendar.domain.user.Role;
@@ -173,11 +175,11 @@ public class UserController {
         }
     }
 
-    @GetMapping("/api/users/oauth2/login/naver")
-    public ResponseEntity<?> naverLoginCallback(@RequestParam String code, @RequestParam String state) {
+    @GetMapping("/oauth2/login/naver")
+    public ResponseEntity<?> naverLoginCallback(@RequestParam("code") String code, @RequestParam("state") String state) {
         try {
             // 네이버로부터 액세스 토큰 요청
-            String accessToken = customOAuth2UserService.getAccessToken(code, state);
+            String accessToken = customOAuth2UserService.getAccessToken("naver", code, state);  // "naver" 값을 첫 번째 인자로 전달
 
             // 액세스 토큰으로 사용자 정보 요청
             Map<String, Object> userProfile = customOAuth2UserService.getNaverUserProfile(accessToken);
@@ -199,20 +201,25 @@ public class UserController {
             String state = body.get("state");
 
             // 네이버로부터 액세스 토큰 요청
-            String accessToken = customOAuth2UserService.getAccessToken(authorizationCode, state);
+            String accessToken = customOAuth2UserService.getAccessToken("naver", authorizationCode, state);
 
             // 액세스 토큰으로 사용자 정보 요청
             Map<String, Object> userProfile = customOAuth2UserService.getNaverUserProfile(accessToken);
             String email = (String) userProfile.get("email");
 
             // JWT 토큰 생성
-            String token = jwtTokenProvider.createToken(email, "ROLE_USER");
+            String jwtToken = jwtTokenProvider.createToken(email, "ROLE_USER");
 
-            return ResponseEntity.ok(new JwtAuthenticationResponse(token));
+            // 클라이언트에 JWT 토큰 반환
+            Map<String, String> response = new HashMap<>();
+            response.put("token", jwtToken);
+
+            return ResponseEntity.ok(response); // 토큰을 JSON으로 반환
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("OAuth2 로그인 실패: " + e.getMessage());
         }
     }
+
 
     // OAuth 연동 해제 (DELETE)
     @DeleteMapping("/oauth/unlink")

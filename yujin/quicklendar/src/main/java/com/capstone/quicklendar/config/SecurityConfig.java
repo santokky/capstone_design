@@ -1,7 +1,5 @@
 package com.capstone.quicklendar.config;
 
-import com.capstone.quicklendar.repository.user.OAuthUserRepository;
-import com.capstone.quicklendar.repository.user.UserRepository;
 import com.capstone.quicklendar.service.user.CustomOAuth2UserService;
 import com.capstone.quicklendar.service.user.CustomUserDetailsService;
 import com.capstone.quicklendar.util.jwt.JwtAuthenticationFilter;
@@ -10,23 +8,20 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.RequestEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.client.endpoint.DefaultAuthorizationCodeTokenResponseClient;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResponseClient;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
-import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequestEntityConverter;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
+import org.springframework.security.oauth2.client.web.HttpSessionOAuth2AuthorizationRequestRepository;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.util.MultiValueMap;
 
 @Configuration
 public class SecurityConfig {
@@ -68,13 +63,16 @@ public class SecurityConfig {
                         }))
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(authorization -> authorization
-                                .baseUri("/oauth2/authorize"))  // OAuth2 인증 엔드포인트 설정
+                                .authorizationRequestRepository(authorizationRequestRepository())  // state 관리 설정
+                        )
                         .tokenEndpoint(token -> token
-                                .accessTokenResponseClient(oAuthConfig.accessTokenResponseClient()))  // OAuthConfig의 메서드 사용
+                                .accessTokenResponseClient(oAuthConfig.accessTokenResponseClient())  // 액세스 토큰 처리
+                        )
                         .userInfoEndpoint(userInfo -> userInfo
-                                .userService(oAuthConfig.customOAuth2UserService()))  // OAuthConfig의 메서드 사용
+                                .userService(oAuthConfig.customOAuth2UserService())  // 사용자 정보 처리
+                        )
                         .successHandler((request, response, authentication) -> {
-                            String token = jwtTokenProvider.createToken(authentication.getName(), "ROLE_USER");
+                            String token = jwtTokenProvider.createToken(authentication.getName(), "ROLE_USER");  // JWT 토큰 생성
                             response.setHeader("Authorization", "Bearer " + token);
                             response.sendRedirect("/success");  // 성공 시 리다이렉트 경로 설정
                         })
@@ -86,6 +84,10 @@ public class SecurityConfig {
         return http.build();
     }
 
+    @Bean
+    public AuthorizationRequestRepository<OAuth2AuthorizationRequest> authorizationRequestRepository() {
+        return new HttpSessionOAuth2AuthorizationRequestRepository();
+    }
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
