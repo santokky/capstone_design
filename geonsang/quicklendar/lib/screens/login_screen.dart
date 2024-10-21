@@ -68,7 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
               const Spacer(flex: 400), // 상단 여백 추가
-              Image.asset('assets/logo.png', height: 130),
+              Image.asset('assets/img/logo.png', height: 130),
               const SizedBox(height: 5),
               const Text(
                 'Login',
@@ -147,13 +147,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Image.asset(
-                    'assets/google_logo.png',
+                    'assets/img/google_logo.png',
                     height: 40,
                     width: 40,
                   ),
                   const SizedBox(width: 10),
                   Image.asset(
-                    'assets/naver_logo.png',
+                    'assets/img/naver_logo.png',
                     height: 40,
                     width: 40,
                   ),

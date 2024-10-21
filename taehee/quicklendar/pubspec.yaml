@@ -128,6 +128,9 @@ flutter:
     - assets/img/slider_sample1.png
     - assets/img/slider_sample2.png
     - assets/img/slider_sample3.png
+    - assets/img/google_logo.png
+    - assets/img/logo.png
+    - assets/img/naver_logo.png
     - lib/l10n/
 
   # An image asset can refer to one or more resolution-specific "variants", see
