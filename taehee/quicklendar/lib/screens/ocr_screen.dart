@@ -265,13 +265,13 @@ $metadata
                         onChanged: (value) => setState(() => selectedField = value),
                       ),
                     );
-                  } else if (entry.key == 'title' || entry.key == 'description') {
+                  } else if (entry.key == 'title' || entry.key == 'description' || entry.key == 'organizer' || entry.key == 'location') {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8.0),
                       child: TextFormField(
-                        maxLines: entry.key == 'title' ? 2 : 5,
+                        maxLines: entry.key == 'title' ? 2 : entry.key == 'description' ? 8 : 2,
                         decoration: InputDecoration(
-                          labelText: entry.key == 'title' ? '제목' : '상세 설명',
+                          labelText: _getLabelText(entry.key),
                           border: OutlineInputBorder(),
                         ),
                         initialValue: entry.value,
@@ -342,9 +342,9 @@ $metadata
   Future<void> _addEventToCalendar(Map<String, String?> contestData) async {
     if (contestData['title'] != null && contestData['contest_start_date'] != null) {
       final event = {
-        'title': contestData['title'],
-        'organizer': contestData['organizer'],
-        'description': contestData['description'],
+      'title': contestData['title'],
+      'organizer': contestData['organizer'],
+      'description': contestData['description'],
         'location': contestData['location'],
         'application_start_date': contestData['application_start_date'],
         'application_end_date': contestData['application_end_date'],
