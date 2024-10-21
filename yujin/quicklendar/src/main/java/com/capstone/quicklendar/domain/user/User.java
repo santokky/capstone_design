@@ -52,14 +52,6 @@ public class User {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private OAuthToken oauthToken;
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-            name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
-    private Set<Role> roles = new HashSet<>();
-
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) { // 생성 시 한 번만 시간 설정
@@ -167,13 +159,5 @@ public class User {
 
     public void setOauthToken(OAuthToken oauthToken) {
         this.oauthToken = oauthToken;
-    }
-
-    public Set<Role> getRoles() {
-        return roles;
-    }
-
-    public void setRoles(Set<Role> roles) {
-        this.roles = roles;
     }
 }
