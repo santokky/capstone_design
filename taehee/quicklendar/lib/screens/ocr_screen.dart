@@ -354,6 +354,7 @@ $metadata
         'contact': contestData['contact'],
         'category': selectedCategory ?? contestData['category'],
         'field': selectedField ?? contestData['field'],
+        'imageUrl': _image?.path,  // 이미지 파일 경로 추가
       };
       try {
         await _dbHelper.insertEvent(event);

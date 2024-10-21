@@ -2,11 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
 import '../models/contest.dart';
+import '../contest_database.dart'; // ContestDatabase 가져오기
 
 class ContestDetailScreen extends StatelessWidget {
   final Contest contest;
 
   const ContestDetailScreen({Key? key, required this.contest}) : super(key: key);
+
+  // 공모전 삭제 함수
+  Future<void> _deleteContest(BuildContext context) async {
+    final contestDB = ContestDatabase.instance;
+    await contestDB.deleteContest(contest.id!); // 공모전 삭제
+    Navigator.pop(context); // 삭제 후 메인 화면으로 돌아가기
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("${contest.title} 공모전이 삭제되었습니다.")),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,6 +26,12 @@ class ContestDetailScreen extends StatelessWidget {
         backgroundColor: Colors.blueAccent,
         foregroundColor: Colors.white,
         title: Text(contest.title),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.delete),
+            onPressed: () => _showDeleteConfirmationDialog(context), // 삭제 확인 다이얼로그 호출
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -57,6 +74,32 @@ class ContestDetailScreen extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  // 삭제 확인 다이얼로그
+  void _showDeleteConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("삭제 확인"),
+          content: Text("${contest.title} 공모전을 삭제하시겠습니까?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("취소"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _deleteContest(context); // 삭제 함수 호출
+              },
+              child: Text("삭제"),
+            ),
+          ],
+        );
+      },
     );
   }
 

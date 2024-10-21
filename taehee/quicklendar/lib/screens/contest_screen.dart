@@ -4,6 +4,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import '../models/contest.dart';
 import '../widgets/contest_form.dart';
 import '../contest_database.dart';
+import '../database_helper.dart'; // DatabaseHelper 가져오기
 import 'contest_detail_screen.dart';
 
 class ContestScreen extends StatefulWidget {
@@ -89,11 +90,26 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
 
   Future<void> loadContestsFromDatabase() async {
     contestList = await ContestDatabase.instance.readAllContests();
+    print('Loaded contests in screen: $contestList'); // 데이터 불러오기 확인
+    // 디버그용으로 전체 리스트 출력
+    contestList.forEach((contest) {
+      print('Loaded contest: ${contest.title}, ${contest.applicationStart}, ${contest.applicationEnd}');
+    });
+
     setState(() {
       homeFilteredContests = List.from(contestList); // 초기값
       contestFilteredContests = List.from(contestList.where((c) => c.activityType == "공모전"));
       activityFilteredContests = List.from(contestList.where((c) => c.activityType == "대외활동"));
+
+      // 디버그용 출력
+      print('Loaded contests: $contestList');
     });
+  }
+
+  // 새로운 공모전 등록 후 database_helper에서 데이터 가져오기
+  Future<void> transferContestsFromDatabaseHelper() async {
+    await DatabaseHelper().transferEventsToContestDatabase();
+    await loadContestsFromDatabase();
   }
 
   void _filterHomeContests(String query) {
@@ -240,6 +256,7 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
   }
 
   Widget buildContestCard(Contest contest) {
+    print('Rendering contest card for: ${contest.title}');  // 데이터 출력
     return GestureDetector(
       onTap: () async {
         contest.views++;
@@ -269,7 +286,7 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                     topRight: Radius.circular(10),
                   ),
                   child: Image.file(
-                    File(contest.imageUrl),
+                    File(contest.imageUrl!),  // 이미지 경로에서 파일을 읽어옴
                     height: 150,
                     width: double.infinity,
                     fit: BoxFit.cover,

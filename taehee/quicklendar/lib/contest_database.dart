@@ -104,6 +104,16 @@ class ContestDatabase {
     );
   }
 
+  // 공모전 삭제 함수 추가
+  Future<int> deleteContest(int id) async {
+    final db = await instance.database;
+    return await db.delete(
+      'contests',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   // 전체 공모전 읽기
   Future<List<Contest>> readAllContests() async {
     final db = await instance.database;
