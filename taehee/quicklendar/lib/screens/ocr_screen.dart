@@ -156,7 +156,7 @@ $metadata
 '''
           }
         ],
-        'max_tokens': 300,
+        'max_tokens': 350,
         'temperature': 0.2,
       }),
     );
