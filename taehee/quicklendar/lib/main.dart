@@ -11,35 +11,14 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'l10n/app_localizations.dart';
 import 'screens/login_screen.dart';
 import 'screens/contest_screen.dart';  // 새로 추가된 파일 import
-//import 'package:mysql_client/mysql_client.dart';
+import 'package:quicklendar/database_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('ko_KR', null);
-  //dbConnector();
+  DatabaseHelper().initializeNotifications();
   runApp(const MyApp());
 }
-
-// Future<void> dbConnector() async {
-//   print("Connecting to mysql server...");
-//
-//   // MySQL 접속 설정
-//   final conn = await MySQLConnection.createConnection(
-//     host: 'http://127.0.0.1/localhost',
-//     port: 3306,
-//     userName: 'root',
-//     password: 'onlyroot',
-//     databaseName: 'quicklendar', // optional
-//   );
-//
-//   // 연결 대기
-//   await conn.connect();
-//
-//   print("Connected");
-//
-//   // 종료 대기
-//   await conn.close();
-// }
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -49,9 +28,9 @@ class MyApp extends StatefulWidget {
     state?.setLocale(newLocale);
   }
 
-  static void setNotificationsEnabled(BuildContext context, bool enabled) {
+  static void setThemeMode(BuildContext context, ThemeMode newThemeMode) {
     _MyAppState? state = context.findAncestorStateOfType<_MyAppState>();
-    state?.setNotificationsEnabled(enabled);
+    state?.setThemeMode(newThemeMode);
   }
 
   @override
@@ -63,13 +42,13 @@ class _MyAppState extends State<MyApp> {
   bool _notificationsEnabled = true;
   FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
   bool _isLoggedIn = false;
+  ThemeMode _themeMode = ThemeMode.light; // 기본은 라이트 모드
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
     _initializeNotifications();
-
   }
 
   Future<void> _loadSettings() async {
@@ -77,10 +56,12 @@ class _MyAppState extends State<MyApp> {
     String? languageCode = prefs.getString('selectedLanguage') ?? 'ko';
     bool? notificationsEnabled = prefs.getBool('notificationsEnabled') ?? true;
     bool? isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+    String? themeMode = prefs.getString('themeMode') ?? 'light';  // 테마 모드 불러오기
     setState(() {
       _locale = Locale(languageCode, '');
       _notificationsEnabled = notificationsEnabled;
       _isLoggedIn = isLoggedIn;
+      _themeMode = themeMode == 'dark' ? ThemeMode.dark : ThemeMode.light;  // 테마 모드 설정
     });
   }
 
@@ -92,39 +73,18 @@ class _MyAppState extends State<MyApp> {
     await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
 
-  Future<void> _showNotification() async {
-    if (!_notificationsEnabled) return;
-
-    const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
-      'your channel id', 'your channel name',
-      channelDescription: 'your channel description',
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: false,
-    );
-    const NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
-    await flutterLocalNotificationsPlugin.show(
-      0,
-      '알림 제목',
-      '알림 내용',
-      platformChannelSpecifics,
-      payload: 'item x',
-    );
-  }
-
   void setLocale(Locale locale) {
     setState(() {
       _locale = locale;
     });
   }
 
-  void setNotificationsEnabled(bool enabled) {
+  void setThemeMode(ThemeMode mode) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      _notificationsEnabled = enabled;
+      _themeMode = mode;
     });
-    if (!enabled) {
-      flutterLocalNotificationsPlugin.cancelAll();
-    }
+    prefs.setString('themeMode', mode == ThemeMode.dark ? 'dark' : 'light');  // 설정 저장
   }
 
   void _setLoggedIn(bool isLoggedIn) async {
@@ -151,31 +111,62 @@ class _MyAppState extends State<MyApp> {
       ],
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
+      // 라이트 모드 테마
       theme: ThemeData(
+        brightness: Brightness.light,  // 라이트 모드일 때 밝은 테마 적용
         appBarTheme: const AppBarTheme(
           color: Colors.white,
         ),
-        brightness: Brightness.light,
         colorScheme: const ColorScheme.light(
-          primary: Colors.blueAccent, // 주요 색상
+          primary: Colors.blueAccent,
           secondary: Colors.white,
           primaryContainer: Colors.blueAccent,
-          onBackground: Colors.blueAccent
+          onBackground: Colors.blueAccent,
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.blueAccent,
-            foregroundColor: Colors.white
-          )
+            foregroundColor: Colors.white,
+          ),
         ),
         scaffoldBackgroundColor: Colors.white,
         canvasColor: Colors.white,
         primaryColor: Colors.blueAccent,
-        // inputDecorationTheme: const InputDecorationTheme(
-        //   filled: true,
-        //   fillColor: Colors.white, // 모든 TextField의 배경색을 흰색으로 설정
-        // ),
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          backgroundColor: Colors.white,  // 라이트 모드 바텀 네비게이션 배경색
+          selectedItemColor: Colors.blueAccent,  // 선택된 아이템 색상
+          unselectedItemColor: Colors.grey,  // 선택되지 않은 아이템 색상
+        ),
       ),
+
+      // 다크 모드 테마
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,  // 다크 모드일 때 어두운 테마 적용
+        appBarTheme: AppBarTheme(
+          color: Colors.grey[900],  // 다크 모드 AppBar 배경색
+        ),
+        colorScheme: ColorScheme.dark(
+          primary: Colors.grey,
+          secondary: Colors.grey,
+          primaryContainer: Colors.grey[850],  // 배경을 더 어둡게
+          onBackground: Colors.white,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.grey,
+            foregroundColor: Colors.white,
+          ),
+        ),
+        scaffoldBackgroundColor: Colors.grey[900],  // 다크 모드 배경색
+        canvasColor: Colors.grey[900],
+        primaryColor: Colors.grey,
+        bottomNavigationBarTheme: BottomNavigationBarThemeData(
+          backgroundColor: Colors.grey[850],  // 다크 모드 바텀 네비게이션 배경색
+          selectedItemColor: Colors.white,  // 선택된 아이템 색상
+          unselectedItemColor: Colors.grey,  // 선택되지 않은 아이템 색상
+        ),
+      ),
+      themeMode: _themeMode, // 사용자가 설정한 테마 모드 적용
       initialRoute: _isLoggedIn ? '/home' : '/login',
       routes: {
         '/login': (context) => LoginScreen(onLoginSuccess: _setLoggedIn),
@@ -228,9 +219,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey[850]  // 다크 모드일 때 색상
+            : Colors.blueAccent,  // 라이트 모드일 때 색상
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text('퀵린더'),
@@ -245,9 +239,41 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.notifications),
-            onPressed: () {
-              final myAppState = context.findAncestorStateOfType<_MyAppState>();
-              myAppState?._showNotification();
+            onPressed: () async {
+              final notifications = await DatabaseHelper().getNotifications(); // 알림 내역 로드
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: const Text('알림 내역'),
+                    content: SizedBox(
+                      width: double.maxFinite,
+                      child: notifications.isEmpty
+                          ? const Center(child: Text('알림 내역이 없습니다.'))
+                          : ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: notifications.length,
+                        itemBuilder: (context, index) {
+                          final notification = notifications[index];
+                          return ListTile(
+                            title: Text(notification['title']),
+                            subtitle: Text(notification['body']),
+                            trailing: Text(notification['timestamp']),
+                          );
+                        },
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(); // 팝업 닫기
+                        },
+                        child: const Text('닫기'),
+                      ),
+                    ],
+                  );
+                },
+              );
             },
             color: Colors.white,
           ),
@@ -261,23 +287,29 @@ class _HomeScreenState extends State<HomeScreen> {
               currentAccountPicture: const CircleAvatar(
                 backgroundImage: AssetImage('assets/calendar.png'),
               ),
-              accountEmail: const Text('hanshin@hs.ac.kr'),
-              accountName: const Text('캡디 5팀'),
-              onDetailsPressed: () {
-                print('press details');
-              },
-              // decoration: const BoxDecoration(
-              //   color: Colors.blueAccent,
-              //   borderRadius: BorderRadius.only(
-              //     bottomLeft: Radius.circular(40),
-              //     bottomRight: Radius.circular(40),
-              //   ),
-              // ),
-              decoration: const BoxDecoration(
-                color: Colors.blueAccent,  // 배경색만 설정
-                // 검은 선이나 그림자를 없애기 위해 boxShadow나 border를 추가하지 않음
+              accountEmail: Text(
+                'hanshin@hs.ac.kr',
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white  // 다크 모드일 때 흰색
+                      : Colors.black,  // 라이트 모드일 때 검정색
+                ),
+              ),
+              accountName: Text(
+                '캡디 5팀',
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white  // 다크 모드일 때 흰색
+                      : Colors.black,  // 라이트 모드일 때 검정색
+                ),
+              ),
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey[850]  // 다크 모드일 때 배경색을 회색으로 변경
+                    : Colors.blueAccent,  // 라이트 모드일 때 배경색은 파란색 유지
               ),
             ),
+
             ListTile(
               leading: const Icon(Icons.camera_alt),
               title: const Text('퀵린더'),
@@ -328,15 +360,21 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: _screens[_currentIndex],
       bottomNavigationBar: Card(
         elevation: 6,
         margin: const EdgeInsets.all(8.0),
-        color: Colors.white,
+        color: Theme.of(context).bottomNavigationBarTheme.backgroundColor,
         child: SalomonBottomBar(
           duration: const Duration(seconds: 1),
-          items: _items,
+          items: _items.map((item) {
+            return SalomonBottomBarItem(
+              icon: item.icon,
+              title: item.title,
+              selectedColor: isDarkMode ? Colors.white : Colors.blueAccent,  // 다크 모드일 때 색상을 흰색으로, 라이트 모드에서는 파란색
+            );
+          }).toList(),
           currentIndex: _currentIndex,
           onTap: (index) => setState(() {
             _currentIndex = index;

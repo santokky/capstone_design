@@ -21,9 +21,13 @@ class ContestDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey[850]  // 다크 모드일 때 색상
+            : Colors.blueAccent,  // 라이트 모드일 때 색상
         foregroundColor: Colors.white,
         title: Text(contest.title),
         actions: [

@@ -79,7 +79,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
       _events.clear();
       for (var event in events) {
         try {
-          final date = DateFormat('yyyy년 MM월 dd일(E)', 'ko_KR').parse(event['contest_start_date']);
+          final date = DateFormat('yyyy년 MM월 dd일(E)', 'ko_KR').parse(
+              event['contest_start_date']);
           final eventDate = DateTime.utc(date.year, date.month, date.day);
           if (_events[eventDate] == null) {
             _events[eventDate] = [];
@@ -115,22 +116,34 @@ class _CalendarScreenState extends State<CalendarScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(event.title, style: TextStyle(fontWeight: FontWeight.bold)),
+          title: Text(
+              event.title, style: TextStyle(fontWeight: FontWeight.bold)),
           content: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (event.organizer.isNotEmpty) _buildDetailRow('주최자', event.organizer),
-                if (event.description.isNotEmpty) _buildDetailRow('상세 설명', event.description),
-                if (event.location.isNotEmpty) _buildDetailRow('장소', event.location),
-                if (event.applicationStartDate.isNotEmpty) _buildDetailRow('신청 시작 날짜', event.applicationStartDate),
-                if (event.applicationEndDate.isNotEmpty) _buildDetailRow('신청 종료 날짜', event.applicationEndDate),
-                if (event.contestStartDate.isNotEmpty) _buildDetailRow('공모전 시작 날짜', event.contestStartDate),
-                if (event.contestEndDate.isNotEmpty) _buildDetailRow('공모전 종료 날짜', event.contestEndDate),
-                if (event.applicationLink.isNotEmpty) _buildDetailRow('신청 경로', event.applicationLink),
-                if (event.contact.isNotEmpty) _buildDetailRow('지원 연락처', event.contact),
-                if (event.category.isNotEmpty) _buildDetailRow('카테고리', event.category),
-                if (event.field.isNotEmpty) _buildDetailRow('활동 분야', event.field),
+                if (event.organizer.isNotEmpty) _buildDetailRow(
+                    '주최자', event.organizer),
+                if (event.description.isNotEmpty) _buildDetailRow(
+                    '상세 설명', event.description),
+                if (event.location.isNotEmpty) _buildDetailRow(
+                    '장소', event.location),
+                if (event.applicationStartDate.isNotEmpty) _buildDetailRow(
+                    '신청 시작 날짜', event.applicationStartDate),
+                if (event.applicationEndDate.isNotEmpty) _buildDetailRow(
+                    '신청 종료 날짜', event.applicationEndDate),
+                if (event.contestStartDate.isNotEmpty) _buildDetailRow(
+                    '공모전 시작 날짜', event.contestStartDate),
+                if (event.contestEndDate.isNotEmpty) _buildDetailRow(
+                    '공모전 종료 날짜', event.contestEndDate),
+                if (event.applicationLink.isNotEmpty) _buildDetailRow(
+                    '신청 경로', event.applicationLink),
+                if (event.contact.isNotEmpty) _buildDetailRow(
+                    '지원 연락처', event.contact),
+                if (event.category.isNotEmpty) _buildDetailRow(
+                    '카테고리', event.category),
+                if (event.field.isNotEmpty) _buildDetailRow(
+                    '활동 분야', event.field),
               ],
             ),
           ),
@@ -162,6 +175,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 다크 모드 여부를 확인
+    bool isDarkMode = Theme
+        .of(context)
+        .brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('달력'),
@@ -178,10 +196,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
             startingDayOfWeek: StartingDayOfWeek.sunday,
             onDaySelected: _onDaySelected,
             eventLoader: _getEventsForDay,
-            calendarStyle: const CalendarStyle(
+            // 달력의 스타일을 다크모드와 라이트모드에 따라 다르게 설정
+            calendarStyle: CalendarStyle(
               outsideDaysVisible: true,
               weekendTextStyle: TextStyle(color: Colors.red),
-              defaultTextStyle: TextStyle(color: Colors.black),
+              defaultTextStyle: TextStyle(
+                  color: isDarkMode ? Colors.white : Colors.black),
+              // 다크모드일 때 흰색으로 변경
               markersAlignment: Alignment.bottomCenter,
               markerDecoration: BoxDecoration(
                 color: Colors.blue,
@@ -189,9 +210,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
               ),
               markersMaxCount: 3,
             ),
-            daysOfWeekStyle: const DaysOfWeekStyle(
+            daysOfWeekStyle: DaysOfWeekStyle(
               weekendStyle: TextStyle(color: Colors.red),
-              weekdayStyle: TextStyle(color: Colors.black),
+              weekdayStyle: TextStyle(color: isDarkMode ? Colors.white : Colors
+                  .black), // 다크모드일 때 흰색으로 변경
             ),
             onFormatChanged: (format) {
               if (_calendarFormat != format) {
@@ -215,7 +237,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     final event = value[index];
                     return ListTile(
                       title: Text(event.title),
-                      subtitle: Text(event.organizer.isNotEmpty ? '주최자: ${event.organizer}' : '주최자 정보 없음'),
+                      subtitle: Text(event.organizer.isNotEmpty ? '주최자: ${event
+                          .organizer}' : '주최자 정보 없음'),
                       onTap: () {
                         _showEventDetails(event);
                       },

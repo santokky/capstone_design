@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:quicklendar/main.dart'; // MyApp 클래스 임포트
+import '../database_helper.dart';
+import 'calendar_screen.dart'; // DatabaseHelper 클래스 임포트
 
 class SettingScreen extends StatefulWidget {
   const SettingScreen({Key? key}) : super(key: key);
@@ -14,6 +16,7 @@ class _SettingScreenState extends State<SettingScreen> {
   String _selectedLanguage = '한국어';
   bool _darkTheme = false;
   SharedPreferences? _prefs;
+  final DatabaseHelper _dbHelper = DatabaseHelper();
 
   @override
   void initState() {
@@ -34,14 +37,39 @@ class _SettingScreenState extends State<SettingScreen> {
     await _prefs?.setBool('notificationsEnabled', _notificationsEnabled);
     await _prefs?.setString('selectedLanguage', _selectedLanguage);
     await _prefs?.setBool('darkTheme', _darkTheme);
+
+    if (_notificationsEnabled) {
+      _scheduleAllNotifications();  // 모든 알림을 다시 예약
+    } else {
+      await _dbHelper.cancelAllNotifications();  // 모든 알림 취소
+    }
+  }
+
+  Future<void> _scheduleAllNotifications() async {
+    final events = await _dbHelper.queryAllEvents(); // 모든 이벤트 로드
+    for (var event in events) {
+      final eventObj = Event(
+        title: event['title'] ?? '',
+        organizer: event['organizer'] ?? '',
+        description: event['description'] ?? '',
+        location: event['location'] ?? '',
+        applicationStartDate: event['application_start_date'] ?? '',
+        applicationEndDate: event['application_end_date'] ?? '',
+        contestStartDate: event['contest_start_date'] ?? '',
+        contestEndDate: event['contest_end_date'] ?? '',
+        applicationLink: event['application_link'] ?? '',
+        contact: event['contact'] ?? '',
+        category: event['category'] ?? '',
+        field: event['field'] ?? '',
+      );
+      await _dbHelper.scheduleNotification(eventObj); // 각각의 이벤트에 대해 알림 예약
+    }
   }
 
   Future<void> _logout() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isLoggedIn', false); // 로그인 상태를 false로 설정
-
-    // 로그아웃 후 로그인 화면으로 이동
-    Navigator.pushReplacementNamed(context, '/login');
+    Navigator.pushReplacementNamed(context, '/login'); // 로그아웃 후 로그인 화면으로 이동
   }
 
   @override
@@ -59,7 +87,7 @@ class _SettingScreenState extends State<SettingScreen> {
               setState(() {
                 _notificationsEnabled = value;
               });
-              _saveSettings();
+              _saveSettings(); // 알림 설정 저장 및 적용
             },
           ),
           ListTile(
@@ -89,9 +117,17 @@ class _SettingScreenState extends State<SettingScreen> {
               setState(() {
                 _darkTheme = value;
               });
-              _saveSettings();
+              _saveSettings(); // 설정을 저장
+
+              // 테마 변경 호출
+              if (_darkTheme) {
+                MyApp.setThemeMode(context, ThemeMode.dark);  // 다크 모드로 변경
+              } else {
+                MyApp.setThemeMode(context, ThemeMode.light); // 라이트 모드로 변경
+              }
             },
           ),
+
           ListTile(
             title: const Text('계정 정보'),
             onTap: () {

@@ -256,7 +256,8 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
   }
 
   Widget buildContestCard(Contest contest) {
-    print('Rendering contest card for: ${contest.title}');  // 데이터 출력
+    bool isDarkMode = Theme.of(context).brightness == Brightness.dark; // 다크 모드 여부 확인
+
     return GestureDetector(
       onTap: () async {
         contest.views++;
@@ -274,7 +275,7 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
           borderRadius: BorderRadius.circular(10.0),
         ),
         elevation: 4,
-        color: Colors.white,
+        color: isDarkMode ? Colors.grey[850] : Colors.white,  // 다크 모드에서는 grey[850], 라이트 모드에서는 흰색
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -318,23 +319,28 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                     contest.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMode ? Colors.white : Colors.black,  // 다크 모드에서는 흰색, 라이트 모드에서는 검정색
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     contest.organizer,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.grey[600]),
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.grey[400] : Colors.grey[600],  // 다크 모드에서는 grey[400], 라이트 모드에서는 grey[600]
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.visibility, size: 16, color: Colors.grey),
+                      Icon(Icons.visibility, size: 16, color: isDarkMode ? Colors.grey[400] : Colors.grey),
                       const SizedBox(width: 4),
                       Text(
                         '${contest.views} 조회수',
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        style: TextStyle(fontSize: 12, color: isDarkMode ? Colors.grey[400] : Colors.grey),
                       ),
                     ],
                   ),
@@ -346,6 +352,7 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
       ),
     );
   }
+
 
   Widget buildFilterRow() {
     return Padding(
@@ -468,9 +475,16 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    // 다크 모드 여부를 확인
+    bool isDarkMode = Theme
+        .of(context)
+        .brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey[850]  // 다크 모드일 때 색상
+            : Colors.blueAccent,  // 라이트 모드일 때 색상
         foregroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -498,8 +512,18 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                   },
                   decoration: InputDecoration(
                     hintText: "공모전 검색",
+                    hintStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white  // 다크 모드일 때 힌트 텍스트 색상
+                          : Colors.grey,  // 라이트 모드일 때 힌트 텍스트 색상
+                    ),
                     suffixIcon: IconButton(
-                      icon: const Icon(Icons.search),
+                      icon: Icon(
+                        Icons.search,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white  // 다크 모드일 때 아이콘 색상
+                            : Colors.black,  // 라이트 모드일 때 아이콘 색상
+                      ),
                       onPressed: () {
                         if (currentTabIndex == 0) {
                           _filterHomeContests(searchController.text);
@@ -514,8 +538,11 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                       borderRadius: BorderRadius.circular(8),
                     ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[850]  // 다크 모드일 때 입력 필드 배경색
+                        : Colors.white,  // 라이트 모드일 때 입력 필드 배경색
                   ),
+
                 ),
               ),
               TabBar(
@@ -705,8 +732,15 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: showAddContestForm,
-        backgroundColor: Colors.blueAccent,
-        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? Colors.white  // 다크 모드일 때 색상
+            : Colors.blueAccent,  // 라이트 모드일 때 색상
+        child: Icon(
+          Icons.add,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.black  // 다크 모드일 때 아이콘 색상
+              : Colors.white,  // 라이트 모드일 때 아이콘 색상
+        ),
       ),
     );
   }

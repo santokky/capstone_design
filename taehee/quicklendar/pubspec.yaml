@@ -37,7 +37,6 @@ dependencies:
   cupertino_icons: ^1.0.8
   settings_ui: ^2.0.2
   path: ^1.9.0
-  flutter_local_notifications: ^9.5.2
   flutter_localizations:
     sdk: flutter
   auto_size_text: 3.0.0
@@ -58,7 +57,7 @@ dependencies:
   path_provider_foundation: 2.4.0
   path_provider_platform_interface: 2.1.2
   provider: 6.1.2
-  shared_preferences: 2.2.2
+  shared_preferences: ^2.2.1
   shared_preferences_android: 2.2.1
   shared_preferences_foundation: 2.3.4
   shared_preferences_platform_interface: 2.3.1
@@ -79,6 +78,11 @@ dependencies:
   build_runner: ^2.0.0
   flutter_dotenv: ^5.0.2
   http: ^1.2.2
+  timezone: ^0.9.4
+  flutter_local_notifications: ^17.2.4
+  flutter_app_icons: ^0.1.0
+  hive_generator: ^2.0.1
+  flutter_launcher_icons: ^0.14.1
 
 
 
@@ -163,3 +167,16 @@ flutter_native_splash:
   image: assets/calendar.png # 스플래시 화면에 표시할 이미지 경로
   android: true
   ios: true
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: "AppIcon"
+  image_path_ios: "assets/img/appstore.png"
+  image_path_android: "assets/img/playstore.png"
+  remove_alpha_ios: true
+
+flutter_icons:
+  ios: true
+  android: true
+  image_path: "assets/img/appstore.png"
+  remove_alpha_ios: true

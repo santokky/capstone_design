@@ -136,18 +136,20 @@ class _EventScreenState extends State<EventScreen> {
               onPressed: () async {
                 await _dbHelper.updateEvent(
                   event['id'],
-                  titleController.text,
-                  descriptionController.text,
-                  organizerController.text,
-                  locationController.text,
-                  applicationStartDateController.text,
-                  applicationEndDateController.text,
-                  contestStartDateController.text,
-                  contestEndDateController.text,
-                  applicationLinkController.text,
-                  contactController.text,
-                  selectedCategory ?? '',
-                  selectedField ?? '',
+                  {
+                    'title': titleController.text,
+                    'description': descriptionController.text,
+                    'organizer': organizerController.text,
+                    'location': locationController.text,
+                    'application_start_date': applicationStartDateController.text,
+                    'application_end_date': applicationEndDateController.text,
+                    'contest_start_date': contestStartDateController.text,
+                    'contest_end_date': contestEndDateController.text,
+                    'application_link': applicationLinkController.text,
+                    'contact': contactController.text,
+                    'category': selectedCategory ?? '',
+                    'field': selectedField ?? '',
+                  },
                 );
                 Navigator.of(context).pop();
                 await _loadEvents();
