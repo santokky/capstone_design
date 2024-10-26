@@ -136,6 +136,9 @@ flutter:
     - assets/img/logo.png
     - assets/img/naver_logo.png
     - lib/l10n/
+    - assets/img/default_profile.png
+    - assets/img/appstore.png
+    - assets/img/playstore.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

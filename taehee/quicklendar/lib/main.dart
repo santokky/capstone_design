@@ -165,6 +165,9 @@ class _MyAppState extends State<MyApp> {
           selectedItemColor: Colors.white,  // 선택된 아이템 색상
           unselectedItemColor: Colors.grey,  // 선택되지 않은 아이템 색상
         ),
+        dialogTheme: DialogTheme(
+          backgroundColor: Colors.grey[850], // 팝업창 배경색
+        ),
       ),
       themeMode: _themeMode, // 사용자가 설정한 테마 모드 적용
       initialRoute: _isLoggedIn ? '/home' : '/login',
@@ -245,6 +248,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 context: context,
                 builder: (BuildContext context) {
                   return AlertDialog(
+                    backgroundColor: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[850]  // 다크 모드일 때 배경색
+                        : Colors.white,     // 라이트 모드일 때 배경색
                     title: const Text('알림 내역'),
                     content: SizedBox(
                       width: double.maxFinite,
@@ -285,7 +291,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: <Widget>[
             UserAccountsDrawerHeader(
               currentAccountPicture: const CircleAvatar(
-                backgroundImage: AssetImage('assets/calendar.png'),
+                backgroundImage: AssetImage('assets/img/default_profile.png'),
               ),
               accountEmail: Text(
                 'hanshin@hs.ac.kr',

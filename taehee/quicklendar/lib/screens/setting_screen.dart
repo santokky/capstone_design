@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:quicklendar/main.dart'; // MyApp 클래스 임포트
+import 'package:quicklendar/screens/user_guide_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../database_helper.dart';
-import 'calendar_screen.dart'; // DatabaseHelper 클래스 임포트
+import 'calendar_screen.dart';
+import 'customer_support_screen.dart';
+import 'faq_screen.dart';
 
 class SettingScreen extends StatefulWidget {
   const SettingScreen({Key? key}) : super(key: key);
@@ -13,7 +16,6 @@ class SettingScreen extends StatefulWidget {
 
 class _SettingScreenState extends State<SettingScreen> {
   bool _notificationsEnabled = true;
-  String _selectedLanguage = '한국어';
   bool _darkTheme = false;
   SharedPreferences? _prefs;
   final DatabaseHelper _dbHelper = DatabaseHelper();
@@ -28,14 +30,12 @@ class _SettingScreenState extends State<SettingScreen> {
     _prefs = await SharedPreferences.getInstance();
     setState(() {
       _notificationsEnabled = _prefs?.getBool('notificationsEnabled') ?? true;
-      _selectedLanguage = _prefs?.getString('selectedLanguage') ?? '한국어';
       _darkTheme = _prefs?.getBool('darkTheme') ?? false;
     });
   }
 
   Future<void> _saveSettings() async {
     await _prefs?.setBool('notificationsEnabled', _notificationsEnabled);
-    await _prefs?.setString('selectedLanguage', _selectedLanguage);
     await _prefs?.setBool('darkTheme', _darkTheme);
 
     if (_notificationsEnabled) {
@@ -46,7 +46,7 @@ class _SettingScreenState extends State<SettingScreen> {
   }
 
   Future<void> _scheduleAllNotifications() async {
-    final events = await _dbHelper.queryAllEvents(); // 모든 이벤트 로드
+    final events = await _dbHelper.queryAllEvents();
     for (var event in events) {
       final eventObj = Event(
         title: event['title'] ?? '',
@@ -62,15 +62,59 @@ class _SettingScreenState extends State<SettingScreen> {
         category: event['category'] ?? '',
         field: event['field'] ?? '',
       );
-      await _dbHelper.scheduleNotification(eventObj); // 각각의 이벤트에 대해 알림 예약
+      await _dbHelper.scheduleNotification(eventObj);
     }
   }
 
   Future<void> _logout() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isLoggedIn', false); // 로그인 상태를 false로 설정
-    Navigator.pushReplacementNamed(context, '/login'); // 로그아웃 후 로그인 화면으로 이동
+    await prefs.setBool('isLoggedIn', false);
+    Navigator.pushReplacementNamed(context, '/login');
   }
+
+  Future<void> _showAccountInfoDialog() async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('계정 정보'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: CircleAvatar(
+                  radius: 30,
+                  backgroundImage: AssetImage('assets/img/default_profile.png'),
+                ),
+                title: Text('홍길동', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                subtitle: Text('한신대학교', style: TextStyle(fontSize: 16)),
+                //trailing: Icon(Icons.more_vert),
+              ),
+              ListTile(
+                title: Text('이메일'),
+                subtitle: Text('example@example.com'),
+              ),
+              ListTile(
+                title: Text('가입 날짜'),
+                subtitle: Text('2023년 1월 1일'),
+              ),
+              ListTile(
+                title: Text('계정 유형'),
+                subtitle: Text('구글 회원'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('로그아웃'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -80,24 +124,60 @@ class _SettingScreenState extends State<SettingScreen> {
       ),
       body: ListView(
         children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: SizedBox(
+              height: 120, // 카드의 높이를 원하는 만큼 조정
+              child: Card(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey[850]  // 다크 모드일 때 배경색을 회색으로 변경
+                    : Colors.grey[200],  // 라이트 모드일 때 배경색은 파란색 유지
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center( // 카드 내의 콘텐츠를 가운데 정렬
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      radius: 30,
+                      backgroundImage: AssetImage('assets/img/default_profile.png'),
+                    ),
+                    title: Text('홍길동', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    subtitle: Text('한신대학교', style: TextStyle(fontSize: 16)),
+                    trailing: Icon(Icons.arrow_forward_ios),
+                    onTap: _showAccountInfoDialog,
+                  ),
+                ),
+              ),
+            ),
+          ),
           SwitchListTile(
+            secondary: Icon(Icons.notifications),
             title: const Text('알림 설정'),
             value: _notificationsEnabled,
             onChanged: (bool value) {
               setState(() {
                 _notificationsEnabled = value;
               });
-              _saveSettings(); // 알림 설정 저장 및 적용
+              _saveSettings();
+              _showNotificationDialog(value);
+            },
+          ),
+          SwitchListTile(
+            secondary: Icon(Icons.brightness_6),
+            title: const Text('테마 설정'),
+            value: _darkTheme,
+            onChanged: (bool value) {
+              setState(() {
+                _darkTheme = value;
+              });
+              _saveSettings();
+              MyApp.setThemeMode(
+                  context, _darkTheme ? ThemeMode.dark : ThemeMode.light);
             },
           ),
           ListTile(
-            title: const Text('앱 언어 설정'),
-            subtitle: const Text('앱 인터페이스 언어 설정'),
-            onTap: () {
-              _showLanguageDialog();
-            },
-          ),
-          ListTile(
+            leading: Icon(Icons.calendar_today),
             title: const Text('달력 설정'),
             subtitle: const Text('기본 보기 설정 및 공휴일 표시'),
             onTap: () {
@@ -105,87 +185,48 @@ class _SettingScreenState extends State<SettingScreen> {
             },
           ),
           ListTile(
-            title: const Text('백업 및 복원'),
-            onTap: () {
-              _showBackupDialog();
-            },
-          ),
-          SwitchListTile(
-            title: const Text('테마 설정'),
-            value: _darkTheme,
-            onChanged: (bool value) {
-              setState(() {
-                _darkTheme = value;
-              });
-              _saveSettings(); // 설정을 저장
-
-              // 테마 변경 호출
-              if (_darkTheme) {
-                MyApp.setThemeMode(context, ThemeMode.dark);  // 다크 모드로 변경
-              } else {
-                MyApp.setThemeMode(context, ThemeMode.light); // 라이트 모드로 변경
-              }
-            },
-          ),
-
-          ListTile(
-            title: const Text('계정 정보'),
-            onTap: () {
-              _showAccountInfoDialog();
-            },
-          ),
-          ListTile(
+            leading: Icon(Icons.help_outline),
             title: const Text('도움말 및 지원'),
             onTap: () {
               _showHelpDialog();
             },
           ),
           ListTile(
+            leading: Icon(Icons.backup),
+            title: const Text('백업 및 복원'),
+            onTap: () {
+              _showBackupDialog();
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.logout),
             title: const Text('로그아웃'),
-            onTap: _logout, // 로그아웃 함수 호출
+            onTap: _logout,
           ),
         ],
       ),
     );
   }
 
-  void _showLanguageDialog() {
+  void _showNotificationDialog(bool isEnabled) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('언어 선택'),
-          content: DropdownButton<String>(
-            value: _selectedLanguage,
-            onChanged: (String? newValue) {
-              if (newValue != null) {
-                setState(() {
-                  _selectedLanguage = newValue;
-                });
-                _saveSettings();
-                _changeLanguage(newValue);
+          title: Text(isEnabled ? '알림 활성화' : '알림 비활성화'),
+          content: Text(
+              isEnabled ? '알림을 활성화했습니다.' : '알림을 비활성화했습니다.'),
+          actions: [
+            TextButton(
+              onPressed: () {
                 Navigator.of(context).pop();
-              }
-            },
-            items: <String>['한국어', 'English']
-                .map<DropdownMenuItem<String>>((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value),
-              );
-            }).toList(),
-          ),
+              },
+              child: const Text('확인'),
+            ),
+          ],
         );
       },
     );
-  }
-
-  void _changeLanguage(String language) {
-    if (language == '한국어') {
-      MyApp.setLocale(context, const Locale('ko', 'KR'));
-    } else {
-      MyApp.setLocale(context, const Locale('en', 'US'));
-    }
   }
 
   void _showCalendarSettingsDialog() {
@@ -271,39 +312,51 @@ class _SettingScreenState extends State<SettingScreen> {
     );
   }
 
-  void _showAccountInfoDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('계정 정보'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                title: const Text('사용자 이름'),
-                subtitle: const Text('사용자 이름 예시'),
-              ),
-              ListTile(
-                title: const Text('이메일'),
-                subtitle: const Text('example@example.com'),
-              ),
-              ElevatedButton(
-                onPressed: _logout, // 로그아웃 실행
-                child: const Text('로그아웃'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  // 계정 삭제 실행
-                },
-                child: const Text('계정 삭제'),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+  // void _showAccountInfoDialog() {
+  //   showDialog(
+  //     context: context,
+  //     builder: (BuildContext context) {
+  //       return AlertDialog(
+  //         title: const Text('계정 정보'),
+  //         content: Column(
+  //           mainAxisSize: MainAxisSize.min,
+  //           children: [
+  //             ListTile(
+  //               leading: Icon(Icons.person),
+  //               title: const Text('사용자 이름'),
+  //               subtitle: const Text('홍길동'),
+  //             ),
+  //             ListTile(
+  //               leading: Icon(Icons.email),
+  //               title: const Text('이메일'),
+  //               subtitle: const Text('example@example.com'),
+  //             ),
+  //             ListTile(
+  //               leading: Icon(Icons.calendar_today),
+  //               title: const Text('가입 날짜'),
+  //               subtitle: const Text('2023년 1월 1일'),
+  //             ),
+  //             ListTile(
+  //               leading: Icon(Icons.account_box),
+  //               title: const Text('계정 유형'),
+  //               subtitle: const Text('프리미엄 회원'),
+  //             ),
+  //             ElevatedButton(
+  //               onPressed: _logout,
+  //               child: const Text('로그아웃'),
+  //             ),
+  //             ElevatedButton(
+  //               onPressed: () {
+  //                 // 계정 삭제 실행
+  //               },
+  //               child: const Text('계정 삭제'),
+  //             ),
+  //           ],
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
 
   void _showHelpDialog() {
     showDialog(
@@ -317,19 +370,28 @@ class _SettingScreenState extends State<SettingScreen> {
               ListTile(
                 title: const Text('자주 묻는 질문'),
                 onTap: () {
-                  // 자주 묻는 질문 화면으로 이동
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => FAQScreen()),
+                  );
                 },
               ),
               ListTile(
                 title: const Text('사용 설명서'),
                 onTap: () {
-                  // 사용 설명서 화면으로 이동
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => UserGuideScreen()),
+                  );
                 },
               ),
               ListTile(
                 title: const Text('고객 지원'),
                 onTap: () {
-                  // 고객 지원 연락처 화면으로 이동
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => CustomerSupportScreen()),
+                  );
                 },
               ),
             ],
