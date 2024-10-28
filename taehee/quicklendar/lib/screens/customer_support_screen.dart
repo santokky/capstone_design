@@ -100,8 +100,8 @@ class CustomerSupportScreen extends StatelessWidget {
             ),
             ListTile(
               leading: Icon(Icons.location_on),
-              title: Text('서울특별시 강남구'),
-              subtitle: Text('우리 회사 주소'),
+              title: Text('한신대학교'),
+              subtitle: Text('경기도 오산시 한신대길 137'),
             ),
             ListTile(
               leading: Icon(Icons.access_time),

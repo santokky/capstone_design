@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../database_helper.dart';
 
@@ -42,19 +43,59 @@ class CalendarScreen extends StatefulWidget {
 
 class _CalendarScreenState extends State<CalendarScreen> {
   CalendarFormat _calendarFormat = CalendarFormat.month;
+  bool _showHolidays = true;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   late final ValueNotifier<List<Event>> _selectedEvents;
+  late final ValueNotifier<List<Event>> _selectedHolidayEvents; // 공휴일 정보를 저장하는 변수
   late Map<DateTime, List<Event>> _events;
   final DatabaseHelper _dbHelper = DatabaseHelper();
+
+  // 공휴일 이벤트 맵 (시간 정보 제거)
+  final Map<DateTime, List<Event>> holidayEvents = {
+    DateTime(2024, 1, 1): [Event(title: '새해')],
+    DateTime(2024, 2, 10): [Event(title: '설날')],
+    DateTime(2024, 3, 1): [Event(title: '삼일절')],
+    DateTime(2024, 5, 5): [Event(title: '어린이날')],
+    DateTime(2024, 6, 6): [Event(title: '현충일')],
+    DateTime(2024, 8, 15): [Event(title: '광복절')],
+    DateTime(2024, 10, 3): [Event(title: '개천절')],
+    DateTime(2024, 10, 9): [Event(title: '한글날')],
+    DateTime(2024, 12, 25): [Event(title: '기독탄신일')],
+    DateTime(2025, 1, 1): [Event(title: '새해')],
+    DateTime(2025, 2, 10): [Event(title: '설날')],
+    DateTime(2025, 3, 1): [Event(title: '삼일절')],
+    DateTime(2025, 5, 5): [Event(title: '어린이날')],
+    DateTime(2025, 6, 6): [Event(title: '현충일')],
+    DateTime(2025, 8, 15): [Event(title: '광복절')],
+    DateTime(2025, 10, 3): [Event(title: '개천절')],
+    DateTime(2025, 10, 9): [Event(title: '한글날')],
+    DateTime(2025, 12, 25): [Event(title: '기독탄신일')],
+    // 추가 공휴일
+  };
 
   @override
   void initState() {
     super.initState();
+    _loadCalendarSettings();
     _selectedDay = _focusedDay;
     _selectedEvents = ValueNotifier([]);
+    _selectedHolidayEvents = ValueNotifier([]); // 공휴일 정보를 초기화
     _events = {};
     _loadEvents();
+  }
+
+  Future<void> _loadCalendarSettings() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String calendarView = prefs.getString('calendarView') ?? '월간';
+    setState(() {
+      _calendarFormat = calendarView == '월간'
+          ? CalendarFormat.month
+          : calendarView == '2주간'
+          ? CalendarFormat.twoWeeks
+          : CalendarFormat.week;
+      _showHolidays = prefs.getBool('showHolidays') ?? true;
+    });
   }
 
   @override
@@ -69,6 +110,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
         _selectedDay = selectedDay;
         _focusedDay = focusedDay;
         _selectedEvents.value = _getEventsForDay(selectedDay);
+
+        // 공휴일인 경우 공휴일 정보를 _selectedHolidayEvents에 저장
+        DateTime normalizedDay = DateTime(selectedDay.year, selectedDay.month, selectedDay.day);
+        if (holidayEvents.containsKey(normalizedDay)) {
+          _selectedHolidayEvents.value = holidayEvents[normalizedDay]!;
+        } else {
+          _selectedHolidayEvents.value = []; // 공휴일이 아닌 경우 초기화
+        }
       });
     }
   }
@@ -108,6 +157,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   List<Event> _getEventsForDay(DateTime day) {
     final eventDate = DateTime.utc(day.year, day.month, day.day);
+    List<Event> events = _events[eventDate] ?? [];
+
+    // 공휴일 표시가 활성화된 경우 공휴일 추가
+    if (_showHolidays && holidayEvents.containsKey(eventDate)) {
+      events.addAll(holidayEvents[eventDate]!);
+    }
     return _events[eventDate] ?? [];
   }
 
@@ -196,12 +251,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
             startingDayOfWeek: StartingDayOfWeek.sunday,
             onDaySelected: _onDaySelected,
             eventLoader: _getEventsForDay,
+            holidayPredicate: (day) {
+              // 날짜 비교를 위한 시간 정보 제거
+              DateTime normalizedDay = DateTime(day.year, day.month, day.day);
+              return _showHolidays && holidayEvents.keys.any((holiday) => isSameDay(normalizedDay, holiday));
+            },
             // 달력의 스타일을 다크모드와 라이트모드에 따라 다르게 설정
             calendarStyle: CalendarStyle(
               outsideDaysVisible: true,
               weekendTextStyle: TextStyle(color: Colors.red),
+              holidayTextStyle: TextStyle(
+                color: _showHolidays ? Colors.red : (isDarkMode ? Colors.white : Colors.black),
+              ),
               defaultTextStyle: TextStyle(
                   color: isDarkMode ? Colors.white : Colors.black),
+              holidayDecoration: BoxDecoration(),
               // 다크모드일 때 흰색으로 변경
               markersAlignment: Alignment.bottomCenter,
               markerDecoration: BoxDecoration(
@@ -227,6 +291,30 @@ class _CalendarScreenState extends State<CalendarScreen> {
             },
           ),
           const SizedBox(height: 8.0),
+          // 선택한 날짜의 공휴일 정보를 표시
+          ValueListenableBuilder<List<Event>>(
+            valueListenable: _selectedHolidayEvents,
+            builder: (context, holidayEvents, _) {
+              return ListView.builder(
+                shrinkWrap: true, // ListView의 크기를 자식 항목에 맞춤
+                physics: NeverScrollableScrollPhysics(), // 스크롤 비활성화
+                itemCount: holidayEvents.length,
+                itemBuilder: (context, index) {
+                  final holiday = holidayEvents[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        holiday.title,
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
           Expanded(
             child: ValueListenableBuilder<List<Event>>(
               valueListenable: _selectedEvents,

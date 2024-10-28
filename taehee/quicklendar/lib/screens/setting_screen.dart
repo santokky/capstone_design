@@ -115,7 +115,6 @@ class _SettingScreenState extends State<SettingScreen> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -233,36 +232,64 @@ class _SettingScreenState extends State<SettingScreen> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('달력 설정'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                title: const Text('기본 보기'),
-                trailing: DropdownButton<String>(
-                  value: '월간',
-                  onChanged: (String? newValue) {
-                    // 기본 보기 설정 변경
+        String _calendarView = _prefs?.getString('calendarView') ?? '월간';
+        bool _showHolidays = _prefs?.getBool('showHolidays') ?? true;
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('달력 설정'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    title: const Text('기본 보기'),
+                    trailing: DropdownButton<String>(
+                      value: _calendarView,
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          _calendarView = newValue!;
+                        });
+                      },
+                      items: <String>['월간', '2주간', '주간']
+                          .map<DropdownMenuItem<String>>((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  SwitchListTile(
+                    title: const Text('공휴일 표시'),
+                    value: _showHolidays,
+                    onChanged: (bool value) {
+                      setState(() {
+                        _showHolidays = value;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
                   },
-                  items: <String>['월간', '주간', '일간']
-                      .map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
+                  child: const Text('취소'),
                 ),
-              ),
-              SwitchListTile(
-                title: const Text('공휴일 표시'),
-                value: true,
-                onChanged: (bool value) {
-                  // 공휴일 표시 설정 변경
-                },
-              ),
-            ],
-          ),
+                ElevatedButton(
+                  onPressed: () async {
+                    // 설정 저장
+                    await _prefs?.setString('calendarView', _calendarView);
+                    await _prefs?.setBool('showHolidays', _showHolidays);
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('저장'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -311,52 +338,6 @@ class _SettingScreenState extends State<SettingScreen> {
       },
     );
   }
-
-  // void _showAccountInfoDialog() {
-  //   showDialog(
-  //     context: context,
-  //     builder: (BuildContext context) {
-  //       return AlertDialog(
-  //         title: const Text('계정 정보'),
-  //         content: Column(
-  //           mainAxisSize: MainAxisSize.min,
-  //           children: [
-  //             ListTile(
-  //               leading: Icon(Icons.person),
-  //               title: const Text('사용자 이름'),
-  //               subtitle: const Text('홍길동'),
-  //             ),
-  //             ListTile(
-  //               leading: Icon(Icons.email),
-  //               title: const Text('이메일'),
-  //               subtitle: const Text('example@example.com'),
-  //             ),
-  //             ListTile(
-  //               leading: Icon(Icons.calendar_today),
-  //               title: const Text('가입 날짜'),
-  //               subtitle: const Text('2023년 1월 1일'),
-  //             ),
-  //             ListTile(
-  //               leading: Icon(Icons.account_box),
-  //               title: const Text('계정 유형'),
-  //               subtitle: const Text('프리미엄 회원'),
-  //             ),
-  //             ElevatedButton(
-  //               onPressed: _logout,
-  //               child: const Text('로그아웃'),
-  //             ),
-  //             ElevatedButton(
-  //               onPressed: () {
-  //                 // 계정 삭제 실행
-  //               },
-  //               child: const Text('계정 삭제'),
-  //             ),
-  //           ],
-  //         ),
-  //       );
-  //     },
-  //   );
-  // }
 
   void _showHelpDialog() {
     showDialog(

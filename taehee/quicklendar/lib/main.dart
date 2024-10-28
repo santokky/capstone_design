@@ -302,7 +302,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               accountName: Text(
-                '캡디 5팀',
+                '홍길동',
                 style: TextStyle(
                   color: Theme.of(context).brightness == Brightness.dark
                       ? Colors.white  // 다크 모드일 때 흰색
