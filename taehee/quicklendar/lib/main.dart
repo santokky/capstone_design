@@ -207,7 +207,12 @@ class _HomeScreenState extends State<HomeScreen> {
       selectedColor: Colors.blueAccent,
     ),
     SalomonBottomBarItem(
-      icon: const Icon(Icons.settings_applications),
+      icon: const Icon(Icons.emoji_events),  // 공모전 탭이 설정 탭보다 앞에 오도록 위치 변경
+      title: const Text('공모전'),
+      selectedColor: Colors.blueAccent,
+    ),
+    SalomonBottomBarItem(
+      icon: const Icon(Icons.settings_applications),  // 설정 탭 위치 변경
       title: const Text('설정'),
       selectedColor: Colors.blueAccent,
     ),
@@ -217,7 +222,8 @@ class _HomeScreenState extends State<HomeScreen> {
     OCRScreen(),
     CalendarScreen(),
     EventScreen(),
-    SettingScreen(),
+    ContestScreen(),  // 공모전 화면 위치 변경
+    SettingScreen(),  // 설정 화면 위치 변경
   ];
 
   @override
@@ -225,9 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
     bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).brightness == Brightness.dark
-            ? Colors.grey[850]  // 다크 모드일 때 색상
-            : Colors.blueAccent,  // 라이트 모드일 때 색상
+        backgroundColor: isDarkMode ? Colors.grey[850] : Colors.blueAccent,
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text('퀵린더'),
@@ -243,14 +247,12 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.notifications),
             onPressed: () async {
-              final notifications = await DatabaseHelper().getNotifications(); // 알림 내역 로드
+              final notifications = await DatabaseHelper().getNotifications();
               showDialog(
                 context: context,
                 builder: (BuildContext context) {
                   return AlertDialog(
-                    backgroundColor: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.grey[850]  // 다크 모드일 때 배경색
-                        : Colors.white,     // 라이트 모드일 때 배경색
+                    backgroundColor: isDarkMode ? Colors.grey[850] : Colors.white,
                     title: const Text('알림 내역'),
                     content: SizedBox(
                       width: double.maxFinite,
@@ -296,26 +298,19 @@ class _HomeScreenState extends State<HomeScreen> {
               accountEmail: Text(
                 'hanshin@hs.ac.kr',
                 style: TextStyle(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white  // 다크 모드일 때 흰색
-                      : Colors.black,  // 라이트 모드일 때 검정색
+                  color: isDarkMode ? Colors.white : Colors.black,
                 ),
               ),
               accountName: Text(
                 '홍길동',
                 style: TextStyle(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white  // 다크 모드일 때 흰색
-                      : Colors.black,  // 라이트 모드일 때 검정색
+                  color: isDarkMode ? Colors.white : Colors.black,
                 ),
               ),
               decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey[850]  // 다크 모드일 때 배경색을 회색으로 변경
-                    : Colors.blueAccent,  // 라이트 모드일 때 배경색은 파란색 유지
+                color: isDarkMode ? Colors.grey[850] : Colors.blueAccent,
               ),
             ),
-
             ListTile(
               leading: const Icon(Icons.camera_alt),
               title: const Text('퀵린더'),
@@ -347,8 +342,8 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.settings_applications),
-              title: const Text('설정'),
+              leading: const Icon(Icons.emoji_events), // 공모전 항목 위치 변경
+              title: const Text('공모전'),
               onTap: () {
                 setState(() {
                   _currentIndex = 3;
@@ -357,10 +352,13 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.emoji_events),
-              title: const Text('공모전'),
+              leading: const Icon(Icons.settings_applications), // 설정 항목 위치 변경
+              title: const Text('설정'),
               onTap: () {
-                Navigator.pushNamed(context, '/contest'); // 새로 추가된 경로로 이동
+                setState(() {
+                  _currentIndex = 4;
+                });
+                Navigator.pop(context);
               },
             ),
           ],
@@ -378,7 +376,7 @@ class _HomeScreenState extends State<HomeScreen> {
             return SalomonBottomBarItem(
               icon: item.icon,
               title: item.title,
-              selectedColor: isDarkMode ? Colors.white : Colors.blueAccent,  // 다크 모드일 때 색상을 흰색으로, 라이트 모드에서는 파란색
+              selectedColor: isDarkMode ? Colors.white : Colors.blueAccent,
             );
           }).toList(),
           currentIndex: _currentIndex,
@@ -391,3 +389,4 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+

@@ -40,8 +40,8 @@ class _ContestFormState extends State<ContestForm> {
   DateTime? endDate;
   File? _selectedImage;
 
-  String? selectedCategory;
-  String? selectedActivityType;
+  String? selectedCategory = "예술 및 디자인 분야";  // 기본 카테고리 설정
+  String? selectedActivityType = "공모전";  // 기본 활동 분야 설정
 
   final List<String> categories = ["예술 및 디자인 분야", "기술 및 공학", "기타"];
   final List<String> activityTypes = ["공모전", "대외활동"];

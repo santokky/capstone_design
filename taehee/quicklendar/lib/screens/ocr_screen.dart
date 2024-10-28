@@ -119,26 +119,31 @@ class OCRScreenState extends State<OCRScreen> {
     final apiKey = Env.openAiApiKey;
     final url = Uri.parse('https://api.openai.com/v1/chat/completions');
 
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $apiKey',
-      },
-      body: jsonEncode({
-        'model': 'gpt-3.5-turbo',
-        'messages': [
-          {'role': 'system', 'content': 'You are a helpful assistant.'},
-          {
-            'role': 'user',
-            'content': '''
-다음은 공모전 포스터 이미지에서 추출된 텍스트와 위치 정보입니다. 이 정보를 바탕으로 공모전 제목, 주최자, 날짜 등을 파싱해주세요.
+    // metadata를 청크로 나누기 (각 청크에 100개의 항목씩 포함하도록 설정)
+    final metadataChunks = splitMetadata(metadata, 200);  // 청크 크기는 필요에 따라 조정 가능
+    Map<String, String?> accumulatedData = {};
+
+    for (final chunk in metadataChunks) {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $apiKey',
+        },
+        body: jsonEncode({
+          'model': 'gpt-3.5-turbo',
+          'messages': [
+            {'role': 'system', 'content': 'You are a helpful assistant.'},
+            {
+              'role': 'user',
+              'content': '''
+다음은 공모전 포스터 이미지에서 추출된 텍스트와 일부 메타정보입니다. 이 정보를 바탕으로 공모전 제목, 주최자, 날짜 등을 파싱해주세요.
 
 텍스트:
 $text
 
 텍스트의 메타정보 (위치 및 레이아웃 정보 포함):
-$metadata
+$chunk
 
 형식:
 - 공모전 제목: <title>
@@ -154,58 +159,75 @@ $metadata
 - 카테고리: <category>
 - 활동 분야: <field>
 '''
-          }
-        ],
-        'max_tokens': 350,
-        'temperature': 0.2,
-      }),
-    );
+            }
+          ],
+          'max_tokens': 350,
+          'temperature': 0.2,
+        }),
+      );
 
-    final responseBody = utf8.decode(response.bodyBytes);
-    final responseData = jsonDecode(responseBody);
+      final responseBody = utf8.decode(response.bodyBytes);
+      final responseData = jsonDecode(responseBody);
 
-    if (responseData.containsKey('error')) {
-      print('API 오류: ${responseData['error']['message']}');
-      return {};
+      if (responseData.containsKey('error')) {
+        print('API 오류: ${responseData['error']['message']}');
+        continue;
+      }
+
+      final completionText = responseData['choices'][0]['message']['content'];
+      print('API 응답 텍스트: $completionText');
+
+      final Map<String, String?> chunkData = {
+        'title': RegExp(r'공모전 제목: (.+)').firstMatch(completionText)?.group(1)?.trim(),
+        'organizer': RegExp(r'주최자: (.+)').firstMatch(completionText)?.group(1)?.trim(),
+        'description': RegExp(r'상세 설명: (.+)').firstMatch(completionText)?.group(1)?.trim(),
+        'location': RegExp(r'장소: (.+)').firstMatch(completionText)?.group(1)?.trim(),
+        'application_start_date': RegExp(r'신청 시작 날짜: (.+)').firstMatch(completionText)?.group(1)?.trim(),
+        'application_end_date': RegExp(r'신청 종료 날짜: (.+)').firstMatch(completionText)?.group(1)?.trim(),
+        'contest_start_date': RegExp(r'공모전 시작 날짜: (.+)').firstMatch(completionText)?.group(1)?.trim(),
+        'contest_end_date': RegExp(r'공모전 종료 날짜: (.+)').firstMatch(completionText)?.group(1)?.trim(),
+        'application_link': RegExp(r'신청 경로: (.+)').firstMatch(completionText)?.group(1)?.trim(),
+        'contact': RegExp(r'지원 연락처: (.+)').firstMatch(completionText)?.group(1)?.trim(),
+        'category': RegExp(r'카테고리: (.+)').firstMatch(completionText)?.group(1)?.trim(),
+        'field': RegExp(r'활동 분야: (.+)').firstMatch(completionText)?.group(1)?.trim(),
+      };
+
+      // 누적된 데이터를 업데이트
+      chunkData.forEach((key, value) {
+        if (value != null && (accumulatedData[key] == null || accumulatedData[key]!.isEmpty)) {
+          accumulatedData[key] = value;
+        }
+      });
     }
-
-    final completionText = responseData['choices'][0]['message']['content'];
-    print('API 응답 텍스트: $completionText');
-
-    final Map<String, String?> extractedData = {
-      'title': RegExp(r'공모전 제목: (.+)').firstMatch(completionText)?.group(1)?.trim(),
-      'organizer': RegExp(r'주최자: (.+)').firstMatch(completionText)?.group(1)?.trim(),
-      'description': RegExp(r'상세 설명: (.+)').firstMatch(completionText)?.group(1)?.trim(),
-      'location': RegExp(r'장소: (.+)').firstMatch(completionText)?.group(1)?.trim(),
-      'application_start_date': RegExp(r'신청 시작 날짜: (.+)').firstMatch(completionText)?.group(1)?.trim(),
-      'application_end_date': RegExp(r'신청 종료 날짜: (.+)').firstMatch(completionText)?.group(1)?.trim(),
-      'contest_start_date': RegExp(r'공모전 시작 날짜: (.+)').firstMatch(completionText)?.group(1)?.trim(),
-      'contest_end_date': RegExp(r'공모전 종료 날짜: (.+)').firstMatch(completionText)?.group(1)?.trim(),
-      'application_link': RegExp(r'신청 경로: (.+)').firstMatch(completionText)?.group(1)?.trim(),
-      'contact': RegExp(r'지원 연락처: (.+)').firstMatch(completionText)?.group(1)?.trim(),
-      'category': RegExp(r'카테고리: (.+)').firstMatch(completionText)?.group(1)?.trim(),
-      'field': RegExp(r'활동 분야: (.+)').firstMatch(completionText)?.group(1)?.trim(),
-    };
 
     // 특정 패턴 보강: 이메일, 전화번호, URL 정규식 추가
     final emailPattern = RegExp(r'\b[\w\.-]+@[\w\.-]+\.\w+\b');
     final phonePattern = RegExp(r'\b\d{2,3}-\d{3,4}-\d{4}\b');
     final urlPattern = RegExp(r'\bhttps?://[\w\.-]+\.[a-z]{2,}(?:/[\w\.-]*)*\b');
 
-    if (extractedData['application_link'] == null || !urlPattern.hasMatch(extractedData['application_link']!)) {
+    if (accumulatedData['application_link'] == null || !urlPattern.hasMatch(accumulatedData['application_link']!)) {
       final urlMatch = urlPattern.firstMatch(text);
       if (urlMatch != null) {
-        extractedData['application_link'] = urlMatch.group(0)?.trim();
+        accumulatedData['application_link'] = urlMatch.group(0)?.trim();
       }
     }
 
-    if (extractedData['contact'] == null || (!phonePattern.hasMatch(extractedData['contact']!) && !emailPattern.hasMatch(extractedData['contact']!))) {
+    if (accumulatedData['contact'] == null || (!phonePattern.hasMatch(accumulatedData['contact']!) && !emailPattern.hasMatch(accumulatedData['contact']!))) {
       final phoneMatch = phonePattern.firstMatch(text);
       final emailMatch = emailPattern.firstMatch(text);
-      extractedData['contact'] = phoneMatch?.group(0)?.trim() ?? emailMatch?.group(0)?.trim();
+      accumulatedData['contact'] = phoneMatch?.group(0)?.trim() ?? emailMatch?.group(0)?.trim();
     }
 
-    return extractedData;
+    return accumulatedData;
+  }
+
+// Helper function to split metadata into chunks
+  List<List<Map<String, dynamic>>> splitMetadata(List<Map<String, dynamic>> metadata, int chunkSize) {
+    List<List<Map<String, dynamic>>> chunks = [];
+    for (var i = 0; i < metadata.length; i += chunkSize) {
+      chunks.add(metadata.sublist(i, i + chunkSize > metadata.length ? metadata.length : i + chunkSize));
+    }
+    return chunks;
   }
 
   // 사용자 확인 다이얼로그
@@ -237,7 +259,7 @@ $metadata
                           labelText: '카테고리',
                           border: OutlineInputBorder(),
                         ),
-                        value: selectedCategory ?? entry.value,
+                        value: categories.contains(selectedCategory ?? entry.value) ? selectedCategory ?? entry.value : null, // 초기값 설정
                         items: categories.map((category) {
                           return DropdownMenuItem(
                             value: category,
@@ -255,7 +277,7 @@ $metadata
                           labelText: '활동 분야',
                           border: OutlineInputBorder(),
                         ),
-                        value: selectedField ?? entry.value,
+                        value: fields.contains(selectedField ?? entry.value) ? selectedField ?? entry.value : null, // 초기값 설정
                         items: fields.map((field) {
                           return DropdownMenuItem(
                             value: field,
