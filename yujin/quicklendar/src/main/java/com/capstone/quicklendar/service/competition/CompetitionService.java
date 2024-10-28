@@ -76,6 +76,34 @@ public class CompetitionService {
         return competitionRepository.findCompetitionsBetweenDates(startDate, endDate);
     }
 
+    // 정렬 조건에 따라 공모전 목록 반환
+    public List<Competition> getCompetitionsSortedBy(String sortBy) {
+        switch (sortBy) {
+            case "likes":
+                return competitionRepository.findAllByOrderByLikesDesc();
+            case "createdAt":
+                return competitionRepository.findAllByOrderByCreatedAtDesc();
+            case "startDateAsc":
+                return competitionRepository.findAllByOrderByStartDateAsc();
+            case "startDateDesc":
+                return competitionRepository.findAllByOrderByStartDateDesc();
+            case "endDateAsc":
+                return competitionRepository.findAllByOrderByEndDateAsc();
+            case "endDateDesc":
+                return competitionRepository.findAllByOrderByEndDateDesc();
+            case "requestStartDateAsc":
+                return competitionRepository.findAllByOrderByRequestStartDateAsc();
+            case "requestStartDateDesc":
+                return competitionRepository.findAllByOrderByRequestStartDateDesc();
+            case "requestEndDateAsc":
+                return competitionRepository.findAllByOrderByRequestEndDateAsc();
+            case "requestEndDateDesc":
+                return competitionRepository.findAllByOrderByRequestEndDateDesc();
+            default:
+                return competitionRepository.findAll();
+        }
+    }
+
     // 공모전 추가
     public Competition addCompetition(Competition competition) {
         return competitionRepository.save(competition);

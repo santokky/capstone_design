@@ -237,4 +237,11 @@ public class CompetitionController {
         competitionLikeService.unlikeCompetition(competitionId, userEmail);
         return "redirect:/competitions/details/" + competitionId;
     }
+
+    // 정렬된 공모전 목록 반환 API
+    @GetMapping("/sort")
+    @ResponseBody
+    public List<Competition> getSortedCompetitions(@RequestParam("sortBy") String sortBy) {
+        return competitionService.getCompetitionsSortedBy(sortBy);
+    }
 }

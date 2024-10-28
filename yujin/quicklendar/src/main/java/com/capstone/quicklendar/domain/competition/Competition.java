@@ -222,4 +222,3 @@ public class Competition {
         like.setCompetition(null);
     }
 }
-

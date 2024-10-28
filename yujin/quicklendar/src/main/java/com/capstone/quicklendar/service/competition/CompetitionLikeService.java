@@ -62,5 +62,3 @@ public class CompetitionLikeService {
         return false;
     }
 }
-
-

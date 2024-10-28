@@ -43,8 +43,16 @@
 
 <!-- 정렬 버튼들 -->
 <div>
-    <button id="sortLikes">좋아요 순 정렬</button>
-    <button id="sortCreatedAt">등록일 순 정렬</button>
+    <button class="sortButton" data-sort="likes">좋아요 순</button>
+    <button class="sortButton" data-sort="createdAt">등록일 순</button>
+    <button class="sortButton" data-sort="startDateAsc">공모전 시작일 오름차순</button>
+    <button class="sortButton" data-sort="startDateDesc">공모전 시작일 내림차순</button>
+    <button class="sortButton" data-sort="endDateAsc">공모전 종료일 오름차순</button>
+    <button class="sortButton" data-sort="endDateDesc">공모전 종료일 내림차순</button>
+    <button class="sortButton" data-sort="requestStartDateAsc">신청 시작일 오름차순</button>
+    <button class="sortButton" data-sort="requestStartDateDesc">신청 시작일 내림차순</button>
+    <button class="sortButton" data-sort="requestEndDateAsc">신청 종료일 오름차순</button>
+    <button class="sortButton" data-sort="requestEndDateDesc">신청 종료일 내림차순</button>
 </div>
 
 <!-- 공모전 목록 -->
@@ -54,8 +62,6 @@
             <img th:src="@{'/images/' + ${competition.image}}" alt="공모전 이미지" width="150" height="150"/>
             <span th:text="${competition.name}">공모전 제목</span>
         </a>
-
-        <!-- 좋아요 수를 CompetitionLike 엔티티를 통해 계산 -->
         <p>좋아요: <span th:text="${competition.likeCount}">0</span></p>
         <p>등록일: <span th:text="${competition.createdAt}">등록일</span></p>
     </li>
@@ -63,27 +69,19 @@
 
 <script>
     $(document).ready(function() {
-        // 정렬 버튼 클릭 시 페이지 이동
-        $('#sortLikes').on('click', function() {
-            window.location.href = "/competitions/main?sort=likes";
-        });
-
-        $('#sortCreatedAt').on('click', function() {
-            window.location.href = "/competitions/main?sort=createdAt";
-        });
-
-        // 필터링 폼 서브밋
-        $('#filterForm').on('submit', function(event) {
-            event.preventDefault();
+        // 정렬 버튼 클릭 이벤트
+        $('.sortButton').on('click', function() {
+            const sortBy = $(this).data('sort');
             $.ajax({
-                url: '/competitions/filter',
+                url: '/competitions/sort',
                 type: 'GET',
-                data: $(this).serialize(),
+                data: { sortBy: sortBy },
                 success: function(response) {
-                    var competitionList = $('#competitionList');
+                    const competitionList = $('#competitionList');
                     competitionList.empty();
+
                     $.each(response, function(index, competition) {
-                        var listItem = `
+                        const listItem = `
                             <li>
                                 <a href="/competitions/details/${competition.id}">
                                     <img src="/images/${competition.image}" alt="공모전 이미지" width="150" height="150"/>
@@ -97,7 +95,37 @@
                     });
                 },
                 error: function(error) {
-                    console.log("Error:", error);
+                    console.error("정렬 중 오류 발생:", error);
+                }
+            });
+        });
+
+        // 필터링 폼 서브밋
+        $('#filterForm').on('submit', function(event) {
+            event.preventDefault();
+            $.ajax({
+                url: '/competitions/filter',
+                type: 'GET',
+                data: $(this).serialize(),
+                success: function(response) {
+                    const competitionList = $('#competitionList');
+                    competitionList.empty();
+                    $.each(response, function(index, competition) {
+                        const listItem = `
+                            <li>
+                                <a href="/competitions/details/${competition.id}">
+                                    <img src="/images/${competition.image}" alt="공모전 이미지" width="150" height="150"/>
+                                    <span>${competition.name}</span>
+                                </a>
+                                <p>좋아요: ${competition.likeCount}</p>
+                                <p>등록일: ${competition.createdAt}</p>
+                            </li>
+                        `;
+                        competitionList.append(listItem);
+                    });
+                },
+                error: function(error) {
+                    console.log("필터링 중 오류 발생:", error);
                 }
             });
         });
@@ -106,3 +134,4 @@
 
 </body>
 </html>
+

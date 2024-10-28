@@ -151,6 +151,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
                     String refreshUrl = "https://oauth2.googleapis.com/revoke?token=" + refreshToken;
                     ResponseEntity<String> refreshResponse = restTemplate.postForEntity(refreshUrl, null, String.class);
                     if (refreshResponse.getStatusCode() == HttpStatus.OK) {
+
                         System.out.println("Google Refresh Token 연동 해제 성공");
                     } else {
                         throw new RuntimeException("Google Refresh Token 연동 해제 실패");
