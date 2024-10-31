@@ -36,6 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
+          backgroundColor: Theme.of(context).dialogTheme.backgroundColor, // 다크 모드 대응
           title: const Text('로그인 실패'),
           content: const Text('이메일 또는 비밀번호가 잘못되었습니다.'),
           actions: [
@@ -51,38 +52,40 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 테마에 따라 색상 설정
+    bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    Color backgroundColor = isDarkMode ? Colors.grey[900]! : Colors.white;
+    Color textColor = isDarkMode ? Colors.white : Color(0xFF333333);
+    Color hintColor = isDarkMode ? Colors.white70 : Color(0xFF333333);
+    Color buttonColor = isDarkMode ? Colors.grey : Color(0xFF2196F3);
+    Color textFieldColor = isDarkMode ? Colors.grey[700]! : Color(0xFFF5F5F5);
+
     return Scaffold(
+      backgroundColor: backgroundColor, // 배경색을 다크 모드에 따라 설정
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.white, Color(0xFF2196F3)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
-              const Spacer(flex: 400), // 상단 여백 추가
-              Image.asset('assets/img/logo.png', height: 130),
+              const Spacer(flex: 3),
+              Image.asset('assets/img/logo.png', height: 100),
               const SizedBox(height: 5),
-              const Text(
+              Text(
                 'Login',
                 style: TextStyle(
-                  fontSize: 50,
+                  fontSize: 40,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF333333),
+                  color: textColor,
                 ),
               ),
-              const SizedBox(height: 50),
-              _buildTextField(_emailController, '이메일을 입력해주세요'),
+              const SizedBox(height: 30),
+              _buildTextField(_emailController, '이메일을 입력해주세요', hintColor, textFieldColor, textColor),
+              const SizedBox(height: 15),
+              _buildTextField(_passwordController, '비밀번호를 입력해주세요', hintColor, textFieldColor, textColor, obscureText: true),
               const SizedBox(height: 10),
-              _buildTextField(_passwordController, '비밀번호를 입력해주세요', obscureText: true),
-              const SizedBox(height: 2),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -96,14 +99,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           });
                         },
                       ),
-                      const Text('아이디 저장하기', style: TextStyle(color: Color(0xFF333333))),
+                      Text('아이디 저장하기', style: TextStyle(color: textColor)),
                     ],
                   ),
                   TextButton(
                     onPressed: () {
                       // 비밀번호 찾기 기능
                     },
-                    child: const Text('pw 찾기', style: TextStyle(color: Color(0xFF333333))),
+                    child: Text('pw 찾기', style: TextStyle(color: textColor)),
                   ),
                 ],
               ),
@@ -111,14 +114,18 @@ class _LoginScreenState extends State<LoginScreen> {
               ElevatedButton(
                 onPressed: _login,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF2196F3),
-                  padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 10),
+                  backgroundColor: buttonColor,
+                  padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  elevation: 5,
                 ),
-                child: const Text('로그인', style: TextStyle(color: Colors.white)),
+                child: const Text('로그인', style: TextStyle(color: Colors.white, fontSize: 18)),
               ),
-              const SizedBox(height: 3),
-              TextButton(
-                onPressed: () {
+              const SizedBox(height: 15),
+              GestureDetector(
+                onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -132,34 +139,40 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   );
                 },
-                child: const Text(
-                  '계정이 없으신가요? 가입하기',
-                  style: TextStyle(color: Color(0xFF333333)),
+                child: RichText(
+                  text: TextSpan(
+                    text: '계정이 없으신가요? ',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: textColor,
+                    ),
+                    children: [
+                      TextSpan(
+                        text: '가입하기',
+                        style: TextStyle(
+                          color: buttonColor,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const Spacer(flex: 5), // 하단 여백 추가
-              const Text(
+              const Spacer(),
+              Text(
                 '소셜 로그인',
-                style: TextStyle(color: Color(0xFF333333), fontSize: 14),
+                style: TextStyle(color: textColor, fontSize: 14),
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 10),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Image.asset(
-                    'assets/img/google_logo.png',
-                    height: 40,
-                    width: 40,
-                  ),
-                  const SizedBox(width: 10),
-                  Image.asset(
-                    'assets/img/naver_logo.png',
-                    height: 40,
-                    width: 40,
-                  ),
+                  _buildSocialIcon('assets/img/google_logo.png', isDarkMode),
+                  const SizedBox(width: 15),
+                  _buildSocialIcon('assets/img/naver_logo.png', isDarkMode),
                 ],
               ),
-              const Spacer(flex: 100), // 추가 하단 여백
+              const Spacer(flex: 2),
             ],
           ),
         ),
@@ -167,16 +180,23 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String hint, {bool obscureText = false}) {
+  Widget _buildTextField(
+      TextEditingController controller,
+      String hint,
+      Color hintColor,
+      Color fillColor,
+      Color textColor, {
+        bool obscureText = false,
+      }) {
     return TextField(
       controller: controller,
       obscureText: obscureText,
-      style: const TextStyle(color: Color(0xFF333333)),
+      style: TextStyle(color: textColor),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(color: Color(0xFF333333)),
+        hintStyle: TextStyle(color: hintColor),
         filled: true,
-        fillColor: Color(0xFFF5F5F5),
+        fillColor: fillColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide.none,
@@ -184,6 +204,32 @@ class _LoginScreenState extends State<LoginScreen> {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: Color(0xFF2196F3)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSocialIcon(String assetPath, bool isDarkMode) {
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: isDarkMode ? Colors.grey[700] : Colors.white,
+        boxShadow: [
+          if (!isDarkMode)
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              spreadRadius: 2,
+              blurRadius: 5,
+              offset: Offset(0, 3),
+            ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10.0),
+        child: Image.asset(
+          assetPath,
+          height: 30,
+          width: 30,
         ),
       ),
     );
