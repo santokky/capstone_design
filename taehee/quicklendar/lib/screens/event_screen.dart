@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../database_helper.dart';
+import '../general_event_database.dart'; // 일반 일정 데이터베이스 헬퍼 추가
 
 class EventScreen extends StatefulWidget {
   const EventScreen({super.key});
@@ -12,6 +13,7 @@ class EventScreen extends StatefulWidget {
 class _EventScreenState extends State<EventScreen> {
   List<Map<String, dynamic>> _events = [];
   final DatabaseHelper _dbHelper = DatabaseHelper();
+  final GeneralEventDatabaseHelper _generalDbHelper = GeneralEventDatabaseHelper(); // 일반 일정 DB 헬퍼 추가
   TextEditingController _searchController = TextEditingController();
   bool _showProgress = false;
   List<bool> _checked = [];
@@ -27,9 +29,12 @@ class _EventScreenState extends State<EventScreen> {
   }
 
   Future<void> _loadEvents() async {
-    final events = await _dbHelper.queryAllEvents();
+    final contestEvents = await _dbHelper.queryAllEvents();
+    final generalEvents = await _generalDbHelper.queryAllGeneralEvents();
+
+    // 일반 일정과 공모전 이벤트를 모두 합치기
     setState(() {
-      _events = events;
+      _events = [...contestEvents, ...generalEvents];
       _checked = List<bool>.filled(_events.length, false);
       _updateProgress();
     });
@@ -39,8 +44,8 @@ class _EventScreenState extends State<EventScreen> {
     final query = _searchController.text.toLowerCase();
     setState(() {
       _events = _events.where((event) {
-        final title = event['title'].toLowerCase();
-        final description = event['description'].toLowerCase();
+        final title = (event['title'] ?? '').toLowerCase();
+        final description = (event['description'] ?? '').toLowerCase();
         return title.contains(query) || description.contains(query);
       }).toList();
     });
@@ -55,22 +60,24 @@ class _EventScreenState extends State<EventScreen> {
 
   Future<void> _deleteEvent(int id) async {
     await _dbHelper.deleteEvent(id);
+    await _generalDbHelper.deleteGeneralEvent(id); // 일반 일정 삭제도 추가
     await _loadEvents();
   }
 
   Future<void> _editEvent(Map<String, dynamic> event) async {
     final titleController = TextEditingController(text: event['title']);
     final descriptionController = TextEditingController(text: event['description']);
-    final organizerController = TextEditingController(text: event['organizer']);
-    final locationController = TextEditingController(text: event['location']);
-    final applicationStartDateController = TextEditingController(text: event['application_start_date']);
-    final applicationEndDateController = TextEditingController(text: event['application_end_date']);
-    final contestStartDateController = TextEditingController(text: event['contest_start_date']);
-    final contestEndDateController = TextEditingController(text: event['contest_end_date']);
-    final applicationLinkController = TextEditingController(text: event['application_link']);
-    final contactController = TextEditingController(text: event['contact']);
+    final organizerController = TextEditingController(text: event['organizer'] ?? '');
+    final locationController = TextEditingController(text: event['location'] ?? '');
+    final startDateController = TextEditingController(
+        text: event['start_time'] ?? event['contest_start_date'] ?? '');
+    final endDateController = TextEditingController(
+        text: event['end_time'] ?? event['contest_end_date'] ?? '');
     String? selectedCategory = event['category'];
     String? selectedField = event['field'];
+
+    // 일반 일정인지 공모전 일정인지 구분
+    bool isGeneralEvent = event.containsKey('start_time');
 
     showDialog(
       context: context,
@@ -92,65 +99,64 @@ class _EventScreenState extends State<EventScreen> {
                 ),
                 TextField(controller: organizerController, decoration: const InputDecoration(labelText: '주최자')),
                 TextField(controller: locationController, decoration: const InputDecoration(labelText: '장소')),
-                TextField(controller: applicationStartDateController, decoration: const InputDecoration(labelText: '신청 시작 날짜')),
-                TextField(controller: applicationEndDateController, decoration: const InputDecoration(labelText: '신청 마감 날짜')),
-                TextField(controller: contestStartDateController, decoration: const InputDecoration(labelText: '시작 날짜')),
-                TextField(controller: contestEndDateController, decoration: const InputDecoration(labelText: '종료 날짜')),
-                TextField(controller: applicationLinkController, decoration: const InputDecoration(labelText: '신청 경로')),
-                TextField(controller: contactController, decoration: const InputDecoration(labelText: '문의처')),
-                DropdownButtonFormField<String>(
-                  value: selectedCategory,
-                  items: categories.map((category) {
-                    return DropdownMenuItem(
-                      value: category,
-                      child: Text(category),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedCategory = value;
-                    });
-                  },
-                  decoration: const InputDecoration(labelText: '카테고리'),
-                ),
-                DropdownButtonFormField<String>(
-                  value: selectedField,
-                  items: fields.map((field) {
-                    return DropdownMenuItem(
-                      value: field,
-                      child: Text(field),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedField = value;
-                    });
-                  },
-                  decoration: const InputDecoration(labelText: '활동 분야'),
-                ),
+                TextField(controller: startDateController, decoration: const InputDecoration(labelText: '시작 날짜')),
+                TextField(controller: endDateController, decoration: const InputDecoration(labelText: '종료 날짜')),
+
+                // 공모전 일정일 때만 표시
+                if (!isGeneralEvent) ...[
+                  DropdownButtonFormField<String>(
+                    value: (selectedCategory?.isEmpty ?? true) ? null : selectedCategory,
+                    items: categories.map((category) {
+                      return DropdownMenuItem(
+                        value: category,
+                        child: Text(category),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedCategory = value ?? '';
+                      });
+                    },
+                    decoration: const InputDecoration(labelText: '카테고리'),
+                  ),
+                  DropdownButtonFormField<String>(
+                    value: (selectedField?.isEmpty ?? true) ? null : selectedField,
+                    items: fields.map((field) {
+                      return DropdownMenuItem(
+                        value: field,
+                        child: Text(field),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedField = value ?? '';
+                      });
+                    },
+                    decoration: const InputDecoration(labelText: '활동 분야'),
+                  ),
+                ],
               ],
             ),
           ),
           actions: [
             ElevatedButton(
               onPressed: () async {
-                await _dbHelper.updateEvent(
-                  event['id'],
-                  {
-                    'title': titleController.text,
-                    'description': descriptionController.text,
-                    'organizer': organizerController.text,
-                    'location': locationController.text,
-                    'application_start_date': applicationStartDateController.text,
-                    'application_end_date': applicationEndDateController.text,
-                    'contest_start_date': contestStartDateController.text,
-                    'contest_end_date': contestEndDateController.text,
-                    'application_link': applicationLinkController.text,
-                    'contact': contactController.text,
-                    'category': selectedCategory ?? '',
-                    'field': selectedField ?? '',
-                  },
-                );
+                final updatedEvent = {
+                  'title': titleController.text,
+                  'description': descriptionController.text,
+                  'organizer': organizerController.text,
+                  'location': locationController.text,
+                  'start_time': event['start_time'] ?? '',
+                  'end_time': event['end_time'] ?? '',
+                  'category': !isGeneralEvent ? selectedCategory ?? '' : '',
+                  'field': !isGeneralEvent ? selectedField ?? '' : '',
+                };
+
+                if (isGeneralEvent) {
+                  await _generalDbHelper.updateGeneralEvent(event['id'], updatedEvent);
+                } else {
+                  await _dbHelper.updateEvent(event['id'], updatedEvent);
+                }
                 Navigator.of(context).pop();
                 await _loadEvents();
               },
@@ -161,6 +167,7 @@ class _EventScreenState extends State<EventScreen> {
       },
     );
   }
+
 
   @override
   void dispose() {
@@ -220,7 +227,7 @@ class _EventScreenState extends State<EventScreen> {
                     },
                   ),
                   title: Text(event['title']),
-                  subtitle: Text('날짜: ${event['contest_start_date'] ?? '날짜 없음'}'),
+                  subtitle: Text('날짜: ${event['start_time'] ?? event['contest_start_date'] ?? '날짜 없음'}'),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [

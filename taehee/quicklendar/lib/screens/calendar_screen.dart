@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../database_helper.dart';
+import '../general_event_database.dart'; // 일반 일정 데이터베이스 헬퍼 불러오기
+import 'package:klc/klc.dart';
 
 class Event {
   final String title;
@@ -33,7 +35,6 @@ class Event {
     this.field = '',
   });
 
-  // Event 객체를 Map<String, dynamic>로 변환하는 메서드
   Map<String, dynamic> toMap() {
     return {
       'title': title,
@@ -52,6 +53,38 @@ class Event {
   }
 }
 
+class GeneralEvent {
+  final String title;
+  final String? description;
+  final String? location;
+  final String startTime;
+  final String endTime;
+  final String? reminderTime;
+  final String createdAt;
+
+  GeneralEvent({
+    required this.title,
+    this.description,
+    this.location,
+    required this.startTime,
+    required this.endTime,
+    this.reminderTime,
+    required this.createdAt,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'description': description,
+      'location': location,
+      'start_time': startTime,
+      'end_time': endTime,
+      'reminder_time': reminderTime,
+      'created_at': createdAt,
+    };
+  }
+}
+
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
 
@@ -64,22 +97,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
   bool _showHolidays = true;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  late final ValueNotifier<List<Event>> _selectedEvents;
-  late final ValueNotifier<List<Event>> _selectedHolidayEvents;
-  late Map<DateTime, List<Event>> _events;
+  late final ValueNotifier<List<dynamic>> _selectedEvents;
+  late Map<DateTime, List<dynamic>> _events;
   final DatabaseHelper _dbHelper = DatabaseHelper();
+  final GeneralEventDatabaseHelper _generalDbHelper = GeneralEventDatabaseHelper(); // 일반 일정 DB 헬퍼 추가
 
-  final Map<DateTime, List<Event>> holidayEvents = {
-    DateTime(2024, 1, 1): [Event(title: '새해')],
-    DateTime(2024, 2, 10): [Event(title: '설날')],
-    DateTime(2024, 3, 1): [Event(title: '삼일절')],
-    DateTime(2024, 5, 5): [Event(title: '어린이날')],
-    DateTime(2024, 6, 6): [Event(title: '현충일')],
-    DateTime(2024, 8, 15): [Event(title: '광복절')],
-    DateTime(2024, 10, 3): [Event(title: '개천절')],
-    DateTime(2024, 10, 9): [Event(title: '한글날')],
-    DateTime(2024, 12, 25): [Event(title: '기독탄신일')],
-  };
+  // 한국 공휴일 추가
+  List<DateTime> _holidays = [];
 
   @override
   void initState() {
@@ -87,9 +111,43 @@ class _CalendarScreenState extends State<CalendarScreen> {
     _loadCalendarSettings();
     _selectedDay = _focusedDay;
     _selectedEvents = ValueNotifier([]);
-    _selectedHolidayEvents = ValueNotifier([]);
     _events = {};
     _loadEvents();
+    _loadGeneralEvents();
+    _calculateHolidays();
+  }
+
+  void _calculateHolidays() {
+    for (int year = 2000; year <= 2100; year++) {
+      _holidays.addAll([
+        DateTime(year, 1, 1),  // 신정
+        DateTime(year, 3, 1),  // 3.1절
+        DateTime(year, 5, 5),  // 어린이날
+        DateTime(year, 6, 6),  // 현충일
+        DateTime(year, 8, 15), // 광복절
+        DateTime(year, 10, 3), // 개천절
+        DateTime(year, 10, 9), // 한글날
+        DateTime(year, 12, 25), // 크리스마스
+      ]);
+
+      // 음력 공휴일 계산 (설날, 석가탄신일, 추석)
+      setLunarDate(year, 1, 1, false); // 설날
+      DateTime lunarNewYear = DateTime.parse(getSolarIsoFormat());
+      setLunarDate(year, 4, 8, false); // 석가탄신일
+      DateTime buddhasBirthday = DateTime.parse(getSolarIsoFormat());
+      setLunarDate(year, 8, 15, false); // 추석
+      DateTime chuseok = DateTime.parse(getSolarIsoFormat());
+
+      _holidays.addAll([
+        lunarNewYear,
+        lunarNewYear.add(Duration(days: 1)), // 설날 연휴
+        lunarNewYear.subtract(Duration(days: 1)), // 설날 연휴 전날
+        buddhasBirthday,
+        chuseok,
+        chuseok.add(Duration(days: 1)), // 추석 연휴
+        chuseok.subtract(Duration(days: 1)), // 추석 연휴 전날
+      ]);
+    }
   }
 
   Future<void> _loadCalendarSettings() async {
@@ -105,37 +163,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
     });
   }
 
-  @override
-  void dispose() {
-    _selectedEvents.dispose();
-    super.dispose();
-  }
-
-  void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
-    if (!isSameDay(_selectedDay, selectedDay)) {
-      setState(() {
-        _selectedDay = selectedDay;
-        _focusedDay = focusedDay;
-        _selectedEvents.value = _getEventsForDay(selectedDay);
-
-        DateTime normalizedDay = DateTime(selectedDay.year, selectedDay.month, selectedDay.day);
-        if (holidayEvents.containsKey(normalizedDay)) {
-          _selectedHolidayEvents.value = holidayEvents[normalizedDay]!;
-        } else {
-          _selectedHolidayEvents.value = [];
-        }
-      });
-    }
-  }
-
   Future<void> _loadEvents() async {
     final events = await _dbHelper.queryAllEvents();
     setState(() {
       _events.clear();
       for (var event in events) {
         try {
-          final date = DateFormat('yyyy년 MM월 dd일(E)', 'ko_KR').parse(
-              event['contest_start_date']);
+          final date = DateFormat('yyyy년 MM월 dd일', 'ko_KR').parse(event['contest_start_date']);
           final eventDate = DateTime.utc(date.year, date.month, date.day);
           if (_events[eventDate] == null) {
             _events[eventDate] = [];
@@ -155,76 +189,51 @@ class _CalendarScreenState extends State<CalendarScreen> {
             field: event['field'] ?? '',
           ));
         } catch (e) {
-          print('Error parsing date: $e');
+          print('Error parsing event date: $e');
         }
       }
     });
   }
 
-  List<Event> _getEventsForDay(DateTime day) {
+  Future<void> _loadGeneralEvents() async {
+    final generalEvents = await _generalDbHelper.queryAllGeneralEvents();
+    setState(() {
+      for (var event in generalEvents) {
+        try {
+          final startDate = DateFormat('yyyy-MM-dd').parse(event['start_time']);
+          final eventDate = DateTime.utc(startDate.year, startDate.month, startDate.day);
+          if (_events[eventDate] == null) {
+            _events[eventDate] = [];
+          }
+          _events[eventDate]!.add(GeneralEvent(
+            title: event['title'] ?? '',
+            description: event['description'],
+            location: event['location'],
+            startTime: event['start_time'] ?? '',
+            endTime: event['end_time'] ?? '',
+            reminderTime: event['reminder_time'],
+            createdAt: event['created_at'] ?? '',
+          ));
+        } catch (e) {
+          print('Error parsing general event date: $e');
+        }
+      }
+    });
+  }
+
+  List<dynamic> _getEventsForDay(DateTime day) {
     final eventDate = DateTime.utc(day.year, day.month, day.day);
-    List<Event> events = _events[eventDate] ?? [];
-
-    if (_showHolidays && holidayEvents.containsKey(eventDate)) {
-      events.addAll(holidayEvents[eventDate]!);
-    }
-    return events;
+    return _events[eventDate] ?? [];
   }
 
-  void _showEventDetails(Event event) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(event.title, style: TextStyle(fontWeight: FontWeight.bold)),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (event.organizer.isNotEmpty) _buildDetailRow('주최자', event.organizer),
-                if (event.description.isNotEmpty) _buildDetailRow('상세 설명', event.description),
-                if (event.location.isNotEmpty) _buildDetailRow('장소', event.location),
-                if (event.applicationStartDate.isNotEmpty) _buildDetailRow('신청 시작 날짜', event.applicationStartDate),
-                if (event.applicationEndDate.isNotEmpty) _buildDetailRow('신청 종료 날짜', event.applicationEndDate),
-                if (event.contestStartDate.isNotEmpty) _buildDetailRow('공모전 시작 날짜', event.contestStartDate),
-                if (event.contestEndDate.isNotEmpty) _buildDetailRow('공모전 종료 날짜', event.contestEndDate),
-                if (event.applicationLink.isNotEmpty) _buildDetailRow('신청 경로', event.applicationLink),
-                if (event.contact.isNotEmpty) _buildDetailRow('지원 연락처', event.contact),
-                if (event.category.isNotEmpty) _buildDetailRow('카테고리', event.category),
-                if (event.field.isNotEmpty) _buildDetailRow('활동 분야', event.field),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text("확인"),
-            ),
-          ],
-        );
-      },
-    );
+  bool _isHoliday(DateTime day) {
+    return _holidays.contains(DateTime(day.year, day.month, day.day));
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('$label: ', style: TextStyle(fontWeight: FontWeight.bold)),
-          Expanded(child: Text(value)),
-        ],
-      ),
-    );
-  }
-  String? selectedCategory = "예술 및 디자인 분야";  // 기본 카테고리 설정
-  String? selectedActivityType = "공모전";  // 기본 활동 분야 설정
-
-  Future<void> _showAddEventDialog() async {
+  Future<void> _showAddGeneralEventDialog() async {
     final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final locationController = TextEditingController();
     final startDateController = TextEditingController();
     final endDateController = TextEditingController();
 
@@ -232,40 +241,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text("일정 추가"),
+          title: Text("일반 일정 추가"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(controller: titleController, decoration: InputDecoration(labelText: '제목')),
-
-              // 카테고리 선택
-              DropdownButtonFormField<String>(
-                value: selectedCategory,
-                decoration: const InputDecoration(labelText: '카테고리 선택'),
-                items: ['예술 및 디자인 분야', '기술 및 공학', '기타'].map((category) {
-                  return DropdownMenuItem(value: category, child: Text(category));
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedCategory = value;
-                  });
-                },
-              ),
-              const SizedBox(height: 8),
-
-              // 활동 분야 선택
-              DropdownButtonFormField<String>(
-                value: selectedActivityType,
-                decoration: const InputDecoration(labelText: '활동 분야 선택'),
-                items: ['공모전', '대외활동'].map((activityType) {
-                  return DropdownMenuItem(value: activityType, child: Text(activityType));
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedActivityType = value;
-                  });
-                },
-              ),
+              TextField(controller: descriptionController, decoration: InputDecoration(labelText: '상세 설명')),
+              TextField(controller: locationController, decoration: InputDecoration(labelText: '장소')),
               const SizedBox(height: 8),
 
               // 시작 날짜
@@ -300,16 +282,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
             TextButton(onPressed: () => Navigator.pop(context), child: Text("취소")),
             TextButton(
               onPressed: () async {
-                final event = Event(
+                final newEvent = GeneralEvent(
                   title: titleController.text,
-                  category: selectedCategory!,
-                  field: selectedActivityType!,
-                  contestStartDate: startDateController.text,
-                  contestEndDate: endDateController.text,
+                  description: descriptionController.text,
+                  location: locationController.text,
+                  startTime: startDateController.text,
+                  endTime: endDateController.text,
+                  createdAt: DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
                 );
 
-                await _dbHelper.insertEvent(event.toMap());
-                await _loadEvents();
+                await _generalDbHelper.insertGeneralEvent(newEvent.toMap());
+                await _loadGeneralEvents(); // 새로 추가된 일반 일정 로드
                 Navigator.pop(context);
               },
               child: Text("추가"),
@@ -320,7 +303,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-// 날짜 선택 함수
   Future<DateTime?> selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -331,13 +313,35 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return picked;
   }
 
-
   @override
   Widget build(BuildContext context) {
-    bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
-      appBar: AppBar(title: const Text('달력')),
+      appBar: AppBar(
+        title: GestureDetector(
+          onTap: () async {
+            // 날짜 선택기 호출
+            DateTime? pickedDate = await showDatePicker(
+              context: context,
+              initialDate: _focusedDay,
+              firstDate: DateTime(2000),
+              lastDate: DateTime(2101),
+              locale: const Locale('ko', 'KR'), // 한국어 설정
+            );
+
+            if (pickedDate != null) {
+              setState(() {
+                _focusedDay = pickedDate;
+                _selectedDay = pickedDate;
+                _selectedEvents.value = _getEventsForDay(pickedDate);
+              });
+            }
+          },
+          child: Text(
+            '달력',  // "달력"으로 변경
+            style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+          ),
+        ),
+      ),
       body: Column(
         children: [
           TableCalendar(
@@ -347,27 +351,26 @@ class _CalendarScreenState extends State<CalendarScreen> {
             focusedDay: _focusedDay,
             selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
             calendarFormat: _calendarFormat,
-            startingDayOfWeek: StartingDayOfWeek.sunday,
-            onDaySelected: _onDaySelected,
-            eventLoader: _getEventsForDay,
-            holidayPredicate: (day) {
-              DateTime normalizedDay = DateTime(day.year, day.month, day.day);
-              return _showHolidays && holidayEvents.keys.any((holiday) => isSameDay(normalizedDay, holiday));
+            onDaySelected: (selectedDay, focusedDay) {
+              setState(() {
+                _selectedDay = selectedDay;
+                _focusedDay = focusedDay;
+                _selectedEvents.value = _getEventsForDay(selectedDay);
+              });
             },
+            eventLoader: _getEventsForDay,
             calendarStyle: CalendarStyle(
               outsideDaysVisible: true,
               weekendTextStyle: TextStyle(color: Colors.red),
-              holidayTextStyle: TextStyle(color: _showHolidays ? Colors.red : (isDarkMode ? Colors.white : Colors.black)),
-              defaultTextStyle: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
-              holidayDecoration: BoxDecoration(),
+              holidayTextStyle: TextStyle(color: Colors.red), // 공휴일 텍스트 색상 설정
+              holidayDecoration: BoxDecoration(), // 공휴일 데코레이션을 비워서 테두리 제거
               markersAlignment: Alignment.bottomCenter,
-              markerDecoration: BoxDecoration(color: Colors.blue, shape: BoxShape.circle),
-              markersMaxCount: 3,
+              markerDecoration: BoxDecoration(
+                color: Colors.lightBlue, // 일정 추가 시 마커 색상 변경 (하늘색)
+                shape: BoxShape.circle,
+              ),
             ),
-            daysOfWeekStyle: DaysOfWeekStyle(
-              weekendStyle: TextStyle(color: Colors.red),
-              weekdayStyle: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
-            ),
+            holidayPredicate: _isHoliday, // 공휴일을 식별하는 함수 지정
             onFormatChanged: (format) {
               if (_calendarFormat != format) {
                 setState(() => _calendarFormat = format);
@@ -375,29 +378,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
             },
             onPageChanged: (focusedDay) => _focusedDay = focusedDay,
           ),
-          const SizedBox(height: 8.0),
-          ValueListenableBuilder<List<Event>>(
-            valueListenable: _selectedHolidayEvents,
-            builder: (context, holidayEvents, _) {
-              return ListView.builder(
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                itemCount: holidayEvents.length,
-                itemBuilder: (context, index) {
-                  final holiday = holidayEvents[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(holiday.title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
           Expanded(
-            child: ValueListenableBuilder<List<Event>>(
+            child: ValueListenableBuilder<List<dynamic>>(
               valueListenable: _selectedEvents,
               builder: (context, value, _) {
                 return ListView.builder(
@@ -406,7 +388,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     final event = value[index];
                     return ListTile(
                       title: Text(event.title),
-                      subtitle: Text(event.organizer.isNotEmpty ? '주최자: ${event.organizer}' : '주최자 정보 없음'),
                       onTap: () => _showEventDetails(event),
                     );
                   },
@@ -416,7 +397,53 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(onPressed: _showAddEventDialog, child: Icon(Icons.add)),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddGeneralEventDialog,
+        child: Icon(Icons.add),
+      ),
+    );
+  }
+
+  void _showEventDetails(dynamic event) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(event.title, style: TextStyle(fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (event.description != null && event.description.isNotEmpty) _buildDetailRow('상세 설명', event.description),
+                if (event.location != null && event.location.isNotEmpty) _buildDetailRow('장소', event.location),
+                if (event.startTime != null && event.startTime.isNotEmpty) _buildDetailRow('시작 시간', event.startTime),
+                if (event.endTime != null && event.endTime.isNotEmpty) _buildDetailRow('종료 시간', event.endTime),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text("확인"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('$label: ', style: TextStyle(fontWeight: FontWeight.bold)),
+          Expanded(child: Text(value)),
+        ],
+      ),
     );
   }
 }
