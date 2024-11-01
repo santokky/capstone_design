@@ -2,21 +2,42 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
 import '../models/contest.dart';
-import '../contest_database.dart'; // ContestDatabase 가져오기
+import '../models/comment.dart';
+import '../contest_database.dart';
 
-class ContestDetailScreen extends StatelessWidget {
+class ContestDetailScreen extends StatefulWidget {
   final Contest contest;
 
   const ContestDetailScreen({Key? key, required this.contest}) : super(key: key);
 
-  // 공모전 삭제 함수
+  @override
+  State<ContestDetailScreen> createState() => _ContestDetailScreenState();
+}
+
+class _ContestDetailScreenState extends State<ContestDetailScreen> {
+  List<Comment> comments = [];
+  final TextEditingController commentController = TextEditingController();
+
+  void addComment(String userName, String content) {
+    setState(() {
+      comments.add(Comment(userName: userName, content: content, date: DateTime.now()));
+    });
+    commentController.clear();
+  }
+
   Future<void> _deleteContest(BuildContext context) async {
     final contestDB = ContestDatabase.instance;
-    await contestDB.deleteContest(contest.id!); // 공모전 삭제
-    Navigator.pop(context); // 삭제 후 메인 화면으로 돌아가기
+    await contestDB.deleteContest(widget.contest.id!);
+    Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("${contest.title} 공모전이 삭제되었습니다.")),
+      SnackBar(content: Text("${widget.contest.title} 공모전이 삭제되었습니다.")),
     );
+  }
+
+  @override
+  void dispose() {
+    commentController.dispose();
+    super.dispose();
   }
 
   @override
@@ -25,15 +46,13 @@ class ContestDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).brightness == Brightness.dark
-            ? Colors.grey[850]  // 다크 모드일 때 색상
-            : Colors.blueAccent,  // 라이트 모드일 때 색상
+        backgroundColor: isDarkMode ? Colors.grey[850] : Colors.blueAccent,
         foregroundColor: Colors.white,
-        title: Text(contest.title),
+        title: Text(widget.contest.title),
         actions: [
           IconButton(
             icon: Icon(Icons.delete),
-            onPressed: () => _showDeleteConfirmationDialog(context), // 삭제 확인 다이얼로그 호출
+            onPressed: () => _showDeleteConfirmationDialog(context),
           ),
         ],
       ),
@@ -43,12 +62,11 @@ class ContestDetailScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 포스터 이미지 섹션
               Center(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12.0),
                   child: Image.file(
-                    File(contest.imageUrl),
+                    File(widget.contest.imageUrl),
                     height: 250,
                     width: double.infinity,
                     fit: BoxFit.cover,
@@ -57,23 +75,18 @@ class ContestDetailScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // 공모전 정보 섹션
-              buildInfoCard(context, contest),
+              // 공모전 정보 카드
+              buildInfoSection(),
 
               const SizedBox(height: 16),
 
-              // 공모전 설명 섹션
+              // 공모전 설명 카드
               buildDescriptionSection(),
 
-              const SizedBox(height: 16),
+              const Divider(height: 40, thickness: 2),
 
-              // 조회수 섹션
-              Center(
-                child: Text(
-                  "조회수: ${contest.views}",
-                  style: const TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-              ),
+              // 댓글 섹션
+              buildCommentSection(),
             ],
           ),
         ),
@@ -81,14 +94,13 @@ class ContestDetailScreen extends StatelessWidget {
     );
   }
 
-  // 삭제 확인 다이얼로그
   void _showDeleteConfirmationDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: Text("삭제 확인"),
-          content: Text("${contest.title} 공모전을 삭제하시겠습니까?"),
+          content: Text("${widget.contest.title} 공모전을 삭제하시겠습니까?"),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -97,7 +109,7 @@ class ContestDetailScreen extends StatelessWidget {
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
-                _deleteContest(context); // 삭제 함수 호출
+                _deleteContest(context);
               },
               child: Text("삭제"),
             ),
@@ -107,8 +119,7 @@ class ContestDetailScreen extends StatelessWidget {
     );
   }
 
-  // 공모전 정보를 카드로 보여주는 위젯
-  Widget buildInfoCard(BuildContext context, Contest contest) {
+  Widget buildInfoSection() {
     return Card(
       elevation: 5,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
@@ -117,52 +128,58 @@ class ContestDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            buildInfoRow(Icons.title, "공모전 이름", contest.title),
+            buildInfoRow(Icons.title, "공모전 이름", widget.contest.title),
             const Divider(),
-            buildInfoRow(Icons.account_circle, "주최자", contest.organizer),
+            buildInfoRow(Icons.account_circle, "주최자", widget.contest.organizer),
             const Divider(),
-            buildInfoRow(Icons.location_on, "공모전 장소", contest.location),
+            buildInfoRow(Icons.location_on, "공모전 장소", widget.contest.location),
             const Divider(),
             buildInfoRow(
               Icons.date_range,
               "신청 기간",
-              "${DateFormat('yyyy-MM-dd').format(contest.applicationStart)} ~ ${DateFormat('yyyy-MM-dd').format(contest.applicationEnd)}",
+              "${DateFormat('yyyy-MM-dd').format(widget.contest.applicationStart)} ~ ${DateFormat('yyyy-MM-dd').format(widget.contest.applicationEnd)}",
             ),
             const Divider(),
             buildInfoRow(
               Icons.event,
               "공모전 기간",
-              "${DateFormat('yyyy-MM-dd').format(contest.startDate)} ~ ${DateFormat('yyyy-MM-dd').format(contest.endDate)}",
+              "${DateFormat('yyyy-MM-dd').format(widget.contest.startDate)} ~ ${DateFormat('yyyy-MM-dd').format(widget.contest.endDate)}",
             ),
             const Divider(),
-            buildInfoRow(Icons.link, "신청 경로", contest.applicationLink),
+            buildInfoRow(Icons.link, "신청 경로", widget.contest.applicationLink),
             const Divider(),
-            buildInfoRow(Icons.phone, "지원 연락처", contest.contact),
+            buildInfoRow(Icons.phone, "지원 연락처", widget.contest.contact),
           ],
         ),
       ),
     );
   }
 
-  // 공모전 설명 섹션
   Widget buildDescriptionSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "공모전 설명",
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+    return Card(
+      color: Colors.grey[200],
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+      child: Container(
+        width: double.infinity, // 너비를 화면 전체에 맞춤
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "공모전 설명",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              widget.contest.description,
+              style: const TextStyle(fontSize: 16, height: 1.5),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        Text(
-          contest.description,
-          style: const TextStyle(fontSize: 16, height: 1.5),
-        ),
-      ],
+      ),
     );
   }
 
-  // 정보 아이템을 한 줄로 정리하여 보여주는 위젯
   Widget buildInfoRow(IconData icon, String label, String value) {
     return Row(
       children: [
@@ -180,6 +197,67 @@ class ContestDetailScreen extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget buildCommentSection() {
+    return Card(
+      elevation: 5,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "댓글",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              itemCount: comments.length,
+              itemBuilder: (context, index) {
+                final comment = comments[index];
+                return ListTile(
+                  title: Text(
+                    comment.userName,
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(comment.content),
+                  trailing: Text(
+                    DateFormat('yyyy-MM-dd HH:mm').format(comment.date),
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                );
+              },
+            ),
+            const Divider(height: 20, thickness: 1),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: commentController,
+                    decoration: InputDecoration(
+                      hintText: "댓글을 입력하세요",
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.send),
+                  onPressed: () {
+                    if (commentController.text.isNotEmpty) {
+                      addComment("사용자", commentController.text);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
