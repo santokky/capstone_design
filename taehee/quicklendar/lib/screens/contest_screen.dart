@@ -31,10 +31,16 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
   String selectedOrganizer = '모든 주최자';
 
   final List<String> categories = ['모든 카테고리', '예술 및 디자인', '기술 및 공학', '기타'];
-  final List<String> periods = ['모든 기간', '신청 D-7 이내', '신청 D-30 이내', '시작 D-7 이내', '종료 D-30 이내'];
-  List<String> contestOrganizers = ['모든 주최자'];  // 공모전 주최자 목록
+  final List<String> periods = [
+    '모든 기간',
+    '신청 D-7 이내',
+    '신청 D-30 이내',
+    '시작 D-7 이내',
+    '종료 D-30 이내'
+  ];
+  List<String> contestOrganizers = ['모든 주최자']; // 공모전 주최자 목록
   List<String> activityOrganizers = ['모든 주최자']; // 대외활동 주최자 목록
-  List<String> organizers = ['모든 주최자'];  // 현재 표시할 주최자 목록
+  List<String> organizers = ['모든 주최자']; // 현재 표시할 주최자 목록
 
   final List<String> imageUrls = [
     'assets/img/slider_sample1.png',
@@ -65,12 +71,14 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
   }
 
   Future<void> loadOrganizersFromDatabase() async {
-    List<String> dbContestOrganizers = await ContestDatabase.instance.readOrganizersByCategory('공모전');
-    List<String> dbActivityOrganizers = await ContestDatabase.instance.readOrganizersByCategory('대외활동');
+    List<String> dbContestOrganizers = await ContestDatabase.instance
+        .readOrganizersByCategory('공모전');
+    List<String> dbActivityOrganizers = await ContestDatabase.instance
+        .readOrganizersByCategory('대외활동');
 
     setState(() {
-      contestOrganizers = ['모든 주최자', ...dbContestOrganizers];  // 공모전 주최자 목록
-      activityOrganizers = ['모든 주최자', ...dbActivityOrganizers];  // 대외활동 주최자 목록
+      contestOrganizers = ['모든 주최자', ...dbContestOrganizers]; // 공모전 주최자 목록
+      activityOrganizers = ['모든 주최자', ...dbActivityOrganizers]; // 대외활동 주최자 목록
 
       // 탭이 공모전 탭일 경우 공모전 주최자 목록을, 대외활동 탭일 경우 대외활동 주최자 목록을 기본값으로 설정
       if (currentTabIndex == 1) {
@@ -93,13 +101,16 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
     print('Loaded contests in screen: $contestList'); // 데이터 불러오기 확인
     // 디버그용으로 전체 리스트 출력
     contestList.forEach((contest) {
-      print('Loaded contest: ${contest.title}, ${contest.applicationStart}, ${contest.applicationEnd}');
+      print('Loaded contest: ${contest.title}, ${contest
+          .applicationStart}, ${contest.applicationEnd}');
     });
 
     setState(() {
       homeFilteredContests = List.from(contestList); // 초기값
-      contestFilteredContests = List.from(contestList.where((c) => c.activityType == "공모전"));
-      activityFilteredContests = List.from(contestList.where((c) => c.activityType == "대외활동"));
+      contestFilteredContests =
+          List.from(contestList.where((c) => c.activityType == "공모전"));
+      activityFilteredContests =
+          List.from(contestList.where((c) => c.activityType == "대외활동"));
 
       // 디버그용 출력
       print('Loaded contests: $contestList');
@@ -129,7 +140,8 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
 
   void _filterContestTab(String query) {
     setState(() {
-      List<Contest> tempList = List.from(contestList.where((c) => c.activityType == "공모전"));
+      List<Contest> tempList = List.from(
+          contestList.where((c) => c.activityType == "공모전"));
 
       // 검색어 필터링
       if (query.isNotEmpty) {
@@ -155,19 +167,23 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
       // 기간 필터링
       if (selectedPeriod == '신청 D-7 이내') {
         tempList = tempList.where((contest) {
-          return contest.applicationEnd.isBefore(DateTime.now().add(Duration(days: 7)));
+          return contest.applicationEnd.isBefore(
+              DateTime.now().add(Duration(days: 7)));
         }).toList();
       } else if (selectedPeriod == '신청 D-30 이내') {
         tempList = tempList.where((contest) {
-          return contest.applicationEnd.isBefore(DateTime.now().add(Duration(days: 30)));
+          return contest.applicationEnd.isBefore(
+              DateTime.now().add(Duration(days: 30)));
         }).toList();
       } else if (selectedPeriod == '시작 D-7 이내') {
         tempList = tempList.where((contest) {
-          return contest.startDate.isBefore(DateTime.now().add(Duration(days: 7)));
+          return contest.startDate.isBefore(
+              DateTime.now().add(Duration(days: 7)));
         }).toList();
       } else if (selectedPeriod == '종료 D-30 이내') {
         tempList = tempList.where((contest) {
-          return contest.endDate.isBefore(DateTime.now().add(Duration(days: 30)));
+          return contest.endDate.isBefore(
+              DateTime.now().add(Duration(days: 30)));
         }).toList();
       }
 
@@ -177,7 +193,8 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
 
   void _filterActivityTab(String query) {
     setState(() {
-      List<Contest> tempList = List.from(contestList.where((c) => c.activityType == "대외활동"));
+      List<Contest> tempList = List.from(
+          contestList.where((c) => c.activityType == "대외활동"));
 
       // 검색어 필터링
       if (query.isNotEmpty) {
@@ -203,19 +220,23 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
       // 기간 필터링
       if (selectedPeriod == '신청 D-7 이내') {
         tempList = tempList.where((contest) {
-          return contest.applicationEnd.isBefore(DateTime.now().add(Duration(days: 7)));
+          return contest.applicationEnd.isBefore(
+              DateTime.now().add(Duration(days: 7)));
         }).toList();
       } else if (selectedPeriod == '신청 D-30 이내') {
         tempList = tempList.where((contest) {
-          return contest.applicationEnd.isBefore(DateTime.now().add(Duration(days: 30)));
+          return contest.applicationEnd.isBefore(
+              DateTime.now().add(Duration(days: 30)));
         }).toList();
       } else if (selectedPeriod == '시작 D-7 이내') {
         tempList = tempList.where((contest) {
-          return contest.startDate.isBefore(DateTime.now().add(Duration(days: 7)));
+          return contest.startDate.isBefore(
+              DateTime.now().add(Duration(days: 7)));
         }).toList();
       } else if (selectedPeriod == '종료 D-30 이내') {
         tempList = tempList.where((contest) {
-          return contest.endDate.isBefore(DateTime.now().add(Duration(days: 30)));
+          return contest.endDate.isBefore(
+              DateTime.now().add(Duration(days: 30)));
         }).toList();
       }
 
@@ -229,7 +250,9 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
       builder: (context) {
         return AlertDialog(
           content: ContestForm(
-            onSubmit: (imageUrl, title, organizer, description, location, appStart, appEnd, start, end, appLink, contact, category, activityType) async {
+            onSubmit: (imageUrl, title, organizer, description, location,
+                appStart, appEnd, start, end, appLink, contact, category,
+                activityType) async {
               final newContest = Contest(
                 imageUrl: imageUrl,
                 title: title,
@@ -256,7 +279,9 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
   }
 
   Widget buildContestCard(Contest contest) {
-    bool isDarkMode = Theme.of(context).brightness == Brightness.dark; // 다크 모드 여부 확인
+    bool isDarkMode = Theme
+        .of(context)
+        .brightness == Brightness.dark; // 다크 모드 여부 확인
 
     return GestureDetector(
       onTap: () async {
@@ -275,7 +300,8 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
           borderRadius: BorderRadius.circular(10.0),
         ),
         elevation: 4,
-        color: isDarkMode ? Colors.grey[850] : Colors.white,  // 다크 모드에서는 grey[850], 라이트 모드에서는 흰색
+        color: isDarkMode ? Colors.grey[850] : Colors.white,
+        // 다크 모드에서는 grey[850], 라이트 모드에서는 흰색
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -287,7 +313,7 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                     topRight: Radius.circular(10),
                   ),
                   child: Image.file(
-                    File(contest.imageUrl!),  // 이미지 경로에서 파일을 읽어옴
+                    File(contest.imageUrl!), // 이미지 경로에서 파일을 읽어옴
                     height: 150,
                     width: double.infinity,
                     fit: BoxFit.cover,
@@ -297,7 +323,8 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                   top: 8,
                   left: 8,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: Colors.pinkAccent,
                       borderRadius: BorderRadius.circular(4),
@@ -321,7 +348,8 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: isDarkMode ? Colors.white : Colors.black,  // 다크 모드에서는 흰색, 라이트 모드에서는 검정색
+                      color: isDarkMode ? Colors.white : Colors
+                          .black, // 다크 모드에서는 흰색, 라이트 모드에서는 검정색
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -330,17 +358,20 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: isDarkMode ? Colors.grey[400] : Colors.grey[600],  // 다크 모드에서는 grey[400], 라이트 모드에서는 grey[600]
+                      color: isDarkMode ? Colors.grey[400] : Colors
+                          .grey[600], // 다크 모드에서는 grey[400], 라이트 모드에서는 grey[600]
                     ),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.visibility, size: 16, color: isDarkMode ? Colors.grey[400] : Colors.grey),
+                      Icon(Icons.visibility, size: 16,
+                          color: isDarkMode ? Colors.grey[400] : Colors.grey),
                       const SizedBox(width: 4),
                       Text(
                         '${contest.views} 조회수',
-                        style: TextStyle(fontSize: 12, color: isDarkMode ? Colors.grey[400] : Colors.grey),
+                        style: TextStyle(fontSize: 12,
+                            color: isDarkMode ? Colors.grey[400] : Colors.grey),
                       ),
                     ],
                   ),
@@ -365,7 +396,8 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
               child: DropdownButtonFormField<String>(
                 value: selectedCategory,
                 isDense: true,
-                isExpanded: true, // 메뉴 자체는 확장되도록 설정
+                isExpanded: true,
+                // 메뉴 자체는 확장되도록 설정
                 items: categories.map((String category) {
                   return DropdownMenuItem<String>(
                     value: category,
@@ -387,7 +419,8 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                   });
                 },
                 decoration: InputDecoration(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 10.0, vertical: 8.0),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8.0),
                   ),
@@ -401,7 +434,8 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
               child: DropdownButtonFormField<String>(
                 value: selectedPeriod,
                 isDense: true,
-                isExpanded: true, // 메뉴 자체는 확장되도록 설정
+                isExpanded: true,
+                // 메뉴 자체는 확장되도록 설정
                 items: periods.map((String period) {
                   return DropdownMenuItem<String>(
                     value: period,
@@ -423,7 +457,8 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                   });
                 },
                 decoration: InputDecoration(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 10.0, vertical: 8.0),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8.0),
                   ),
@@ -437,7 +472,8 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
               child: DropdownButtonFormField<String>(
                 value: selectedOrganizer,
                 isDense: true,
-                isExpanded: true, // 메뉴 자체는 확장되도록 설정
+                isExpanded: true,
+                // 메뉴 자체는 확장되도록 설정
                 items: organizers.map((String organizer) {
                   return DropdownMenuItem<String>(
                     value: organizer,
@@ -459,7 +495,8 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                   });
                 },
                 decoration: InputDecoration(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 10.0, vertical: 8.0),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8.0),
                   ),
@@ -481,25 +518,15 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
         .brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).brightness == Brightness.dark
-            ? Colors.grey[850]  // 다크 모드일 때 색상
-            : Colors.blueAccent,  // 라이트 모드일 때 색상
-        foregroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-        title: const Text("공모전"),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(120.0), // TabBar 높이 조정
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: TextField(
+      body: Column(
+        children: [
+          // 상단의 파란색 배경을 포함한 Container
+          Container(
+            color: isDarkMode ? Colors.grey[850] : Colors.blueAccent, // 다크 모드에서는 grey[850], 라이트 모드에서는 흰색
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              children: [
+                TextField(
                   controller: searchController,
                   onChanged: (text) {
                     if (currentTabIndex == 0) {
@@ -513,16 +540,12 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                   decoration: InputDecoration(
                     hintText: "공모전 검색",
                     hintStyle: TextStyle(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white  // 다크 모드일 때 힌트 텍스트 색상
-                          : Colors.grey,  // 라이트 모드일 때 힌트 텍스트 색상
+                      color: Colors.grey[600], // 검색창 힌트 텍스트 색상 설정
                     ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         Icons.search,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white  // 다크 모드일 때 아이콘 색상
-                            : Colors.black,  // 라이트 모드일 때 아이콘 색상
+                        color: Colors.black, // 검색 아이콘 색상
                       ),
                       onPressed: () {
                         if (currentTabIndex == 0) {
@@ -538,30 +561,28 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                       borderRadius: BorderRadius.circular(8),
                     ),
                     filled: true,
-                    fillColor: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.grey[850]  // 다크 모드일 때 입력 필드 배경색
-                        : Colors.white,  // 라이트 모드일 때 입력 필드 배경색
+                    fillColor: Colors.white, // 검색창 배경색을 흰색으로 설정
                   ),
-
                 ),
-              ),
-              TabBar(
-                controller: _tabController,
-                tabs: const [
-                  Tab(text: "홈"),
-                  Tab(text: "공모전"),
-                  Tab(text: "대외활동"),
-                ],
-                labelColor: Colors.white,
-                indicatorColor: Colors.white,
-              ),
-            ],
+                TabBar(
+                  controller: _tabController,
+                  labelColor: Colors.white,
+                  // 선택된 탭의 텍스트 색상
+                  unselectedLabelColor: Colors.grey[300],
+                  // 선택되지 않은 탭의 텍스트 색상
+                  indicatorColor: Colors.white,
+                  // 탭바 인디케이터 색상
+                  tabs: const [
+                    Tab(text: "홈"),
+                    Tab(text: "공모전"),
+                    Tab(text: "대외활동"),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
-      body: Column(
-        children: [
-          if (currentTabIndex == 1 || currentTabIndex == 2) buildFilterRow(), // 공모전과 대외활동 탭에서만 필터링 메뉴 표시
+          if (currentTabIndex == 1 || currentTabIndex == 2) buildFilterRow(),
+          // 공모전과 대외활동 탭에서만 필터링 메뉴 표시
           Expanded(
             child: TabBarView(
               controller: _tabController,
@@ -593,9 +614,11 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                                     return Builder(
                                       builder: (BuildContext context) {
                                         return Container(
-                                          margin: const EdgeInsets.symmetric(horizontal: 5.0),
+                                          margin: const EdgeInsets.symmetric(
+                                              horizontal: 5.0),
                                           child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(10.0),
+                                            borderRadius: BorderRadius.circular(
+                                                10.0),
                                             child: Image.asset(
                                               url,
                                               fit: BoxFit.cover,
@@ -609,15 +632,20 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                                 const SizedBox(height: 8),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
-                                  children: imageUrls.asMap().entries.map((entry) {
+                                  children: imageUrls
+                                      .asMap()
+                                      .entries
+                                      .map((entry) {
                                     return GestureDetector(
-                                      onTap: () => setState(() {
-                                        currentIndex = entry.key;
-                                      }),
+                                      onTap: () =>
+                                          setState(() {
+                                            currentIndex = entry.key;
+                                          }),
                                       child: Container(
                                         width: 8.0,
                                         height: 8.0,
-                                        margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+                                        margin: const EdgeInsets.symmetric(
+                                            vertical: 8.0, horizontal: 4.0),
                                         decoration: BoxDecoration(
                                           shape: BoxShape.circle,
                                           color: currentIndex == entry.key
@@ -637,7 +665,8 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                               alignment: Alignment.centerLeft,
                               child: Text(
                                 "현재 주목 받는 공모전",
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 18),
                               ),
                             ),
                           ),
@@ -661,7 +690,7 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                     ),
                   ],
                 ),
-                // 공모전 탭: '공모전' 활동분야만 필터링
+                // 공모전 탭
                 CustomScrollView(
                   slivers: [
                     SliverToBoxAdapter(
@@ -671,7 +700,8 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                           alignment: Alignment.centerLeft,
                           child: Text(
                             "공모전",
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 18),
                           ),
                         ),
                       ),
@@ -693,7 +723,7 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                     ),
                   ],
                 ),
-                // 대외활동 탭: '대외활동' 활동분야만 필터링
+                // 대외활동 탭
                 CustomScrollView(
                   slivers: [
                     SliverToBoxAdapter(
@@ -703,7 +733,8 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                           alignment: Alignment.centerLeft,
                           child: Text(
                             "대외활동",
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 18),
                           ),
                         ),
                       ),
@@ -732,14 +763,18 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: showAddContestForm,
-        backgroundColor: Theme.of(context).brightness == Brightness.dark
-            ? Colors.white  // 다크 모드일 때 색상
-            : Colors.blueAccent,  // 라이트 모드일 때 색상
+        backgroundColor: Theme
+            .of(context)
+            .brightness == Brightness.dark
+            ? Colors.white
+            : Colors.blueAccent,
         child: Icon(
           Icons.add,
-          color: Theme.of(context).brightness == Brightness.dark
-              ? Colors.black  // 다크 모드일 때 아이콘 색상
-              : Colors.white,  // 라이트 모드일 때 아이콘 색상
+          color: Theme
+              .of(context)
+              .brightness == Brightness.dark
+              ? Colors.black
+              : Colors.white,
         ),
       ),
     );

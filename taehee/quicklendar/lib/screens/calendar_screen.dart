@@ -102,7 +102,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
   final DatabaseHelper _dbHelper = DatabaseHelper();
   final GeneralEventDatabaseHelper _generalDbHelper = GeneralEventDatabaseHelper(); // 일반 일정 DB 헬퍼 추가
 
-  // 한국 공휴일 추가
   List<DateTime> _holidays = [];
 
   @override
@@ -130,7 +129,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
         DateTime(year, 12, 25), // 크리스마스
       ]);
 
-      // 음력 공휴일 계산 (설날, 석가탄신일, 추석)
       setLunarDate(year, 1, 1, false); // 설날
       DateTime lunarNewYear = DateTime.parse(getSolarIsoFormat());
       setLunarDate(year, 4, 8, false); // 석가탄신일
@@ -140,12 +138,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
       _holidays.addAll([
         lunarNewYear,
-        lunarNewYear.add(Duration(days: 1)), // 설날 연휴
-        lunarNewYear.subtract(Duration(days: 1)), // 설날 연휴 전날
+        lunarNewYear.add(Duration(days: 1)),
+        lunarNewYear.subtract(Duration(days: 1)),
         buddhasBirthday,
         chuseok,
-        chuseok.add(Duration(days: 1)), // 추석 연휴
-        chuseok.subtract(Duration(days: 1)), // 추석 연휴 전날
+        chuseok.add(Duration(days: 1)),
+        chuseok.subtract(Duration(days: 1)),
       ]);
     }
   }
@@ -303,6 +301,129 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
+  Future<void> _showAddContestEventDialog() async {
+    final titleController = TextEditingController();
+    final organizerController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final locationController = TextEditingController();
+    final applicationStartController = TextEditingController();
+    final applicationEndController = TextEditingController();
+    final contestStartController = TextEditingController();
+    final contestEndController = TextEditingController();
+    final applicationLinkController = TextEditingController();
+    final contactController = TextEditingController();
+    final categoryController = TextEditingController();
+    final fieldController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("공모전 일정 추가"),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: titleController, decoration: InputDecoration(labelText: '제목')),
+                TextField(controller: organizerController, decoration: InputDecoration(labelText: '주최자')),
+                TextField(controller: descriptionController, decoration: InputDecoration(labelText: '상세 설명')),
+                TextField(controller: locationController, decoration: InputDecoration(labelText: '장소')),
+                const SizedBox(height: 8),
+
+                // 신청 시작 날짜
+                TextField(
+                  readOnly: true,
+                  decoration: const InputDecoration(labelText: '신청 시작 날짜'),
+                  controller: applicationStartController,
+                  onTap: () async {
+                    final date = await selectDate(context);
+                    if (date != null) {
+                      applicationStartController.text = DateFormat('yyyy-MM-dd').format(date);
+                    }
+                  },
+                ),
+                const SizedBox(height: 8),
+
+                // 신청 종료 날짜
+                TextField(
+                  readOnly: true,
+                  decoration: const InputDecoration(labelText: '신청 종료 날짜'),
+                  controller: applicationEndController,
+                  onTap: () async {
+                    final date = await selectDate(context);
+                    if (date != null) {
+                      applicationEndController.text = DateFormat('yyyy-MM-dd').format(date);
+                    }
+                  },
+                ),
+                const SizedBox(height: 8),
+
+                // 공모전 시작 날짜
+                TextField(
+                  readOnly: true,
+                  decoration: const InputDecoration(labelText: '공모전 시작 날짜'),
+                  controller: contestStartController,
+                  onTap: () async {
+                    final date = await selectDate(context);
+                    if (date != null) {
+                      contestStartController.text = DateFormat('yyyy-MM-dd').format(date);
+                    }
+                  },
+                ),
+                const SizedBox(height: 8),
+
+                // 공모전 종료 날짜
+                TextField(
+                  readOnly: true,
+                  decoration: const InputDecoration(labelText: '공모전 종료 날짜'),
+                  controller: contestEndController,
+                  onTap: () async {
+                    final date = await selectDate(context);
+                    if (date != null) {
+                      contestEndController.text = DateFormat('yyyy-MM-dd').format(date);
+                    }
+                  },
+                ),
+                const SizedBox(height: 8),
+
+                TextField(controller: applicationLinkController, decoration: InputDecoration(labelText: '신청 경로')),
+                TextField(controller: contactController, decoration: InputDecoration(labelText: '지원 연락처')),
+                TextField(controller: categoryController, decoration: InputDecoration(labelText: '카테고리')),
+                TextField(controller: fieldController, decoration: InputDecoration(labelText: '활동 분야')),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: Text("취소")),
+            TextButton(
+              onPressed: () async {
+                final newEvent = Event(
+                  title: titleController.text,
+                  organizer: organizerController.text,
+                  description: descriptionController.text,
+                  location: locationController.text,
+                  applicationStartDate: applicationStartController.text,
+                  applicationEndDate: applicationEndController.text,
+                  contestStartDate: contestStartController.text,
+                  contestEndDate: contestEndController.text,
+                  applicationLink: applicationLinkController.text,
+                  contact: contactController.text,
+                  category: categoryController.text,
+                  field: fieldController.text,
+                );
+
+                await _dbHelper.insertEvent(newEvent.toMap());
+                await _loadEvents(); // 새로 추가된 공모전 일정 로드
+                Navigator.pop(context);
+              },
+              child: Text("추가"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<DateTime?> selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -388,6 +509,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     final event = value[index];
                     return ListTile(
                       title: Text(event.title),
+                      subtitle: event is Event
+                          ? Text(event.organizer.isNotEmpty ? '주최자: ${event.organizer}' : '주최자 정보 없음')
+                          : (event is GeneralEvent && event.description != null ? Text('설명: ${event.description}') : Text('설명 없음')),
                       onTap: () => _showEventDetails(event),
                     );
                   },
@@ -414,10 +538,24 @@ class _CalendarScreenState extends State<CalendarScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (event.description != null && event.description.isNotEmpty) _buildDetailRow('상세 설명', event.description),
-                if (event.location != null && event.location.isNotEmpty) _buildDetailRow('장소', event.location),
-                if (event.startTime != null && event.startTime.isNotEmpty) _buildDetailRow('시작 시간', event.startTime),
-                if (event.endTime != null && event.endTime.isNotEmpty) _buildDetailRow('종료 시간', event.endTime),
+                if (event is Event) ...[
+                  if (event.organizer.isNotEmpty) _buildDetailRow('주최자', event.organizer),
+                  if (event.description.isNotEmpty) _buildDetailRow('상세 설명', event.description),
+                  if (event.location.isNotEmpty) _buildDetailRow('장소', event.location),
+                  if (event.applicationStartDate.isNotEmpty) _buildDetailRow('신청 시작 날짜', event.applicationStartDate),
+                  if (event.applicationEndDate.isNotEmpty) _buildDetailRow('신청 종료 날짜', event.applicationEndDate),
+                  if (event.contestStartDate.isNotEmpty) _buildDetailRow('공모전 시작 날짜', event.contestStartDate),
+                  if (event.contestEndDate.isNotEmpty) _buildDetailRow('공모전 종료 날짜', event.contestEndDate),
+                  if (event.applicationLink.isNotEmpty) _buildDetailRow('신청 경로', event.applicationLink),
+                  if (event.contact.isNotEmpty) _buildDetailRow('지원 연락처', event.contact),
+                  if (event.category.isNotEmpty) _buildDetailRow('카테고리', event.category),
+                  if (event.field.isNotEmpty) _buildDetailRow('활동 분야', event.field),
+                ] else if (event is GeneralEvent) ...[
+                  if (event.description != null && event.description!.isNotEmpty) _buildDetailRow('상세 설명', event.description!),
+                  if (event.location != null && event.location!.isNotEmpty) _buildDetailRow('장소', event.location!),
+                  _buildDetailRow('시작 날짜', event.startTime),
+                  _buildDetailRow('종료 날짜', event.endTime),
+                ],
               ],
             ),
           ),
@@ -433,6 +571,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
       },
     );
   }
+
+
 
   Widget _buildDetailRow(String label, String value) {
     return Padding(
