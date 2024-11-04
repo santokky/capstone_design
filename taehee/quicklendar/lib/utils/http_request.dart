@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-const String baseUrl = 'http://localhost:8080';
+const String baseUrl = 'http://10.0.2.2:8080';
 const Map<String, String> headers = {
   "accept": "application/json",
   "Content-Type": "application/json",
