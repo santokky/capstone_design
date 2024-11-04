@@ -3,14 +3,16 @@ import 'package:http/http.dart' as http;
 
 const String baseUrl = 'http://10.0.2.2:8080';
 
-Future<Map<String, dynamic>> signupUser(String email, String password) async {
+Future<Map<String, dynamic>> signupUser(String name, String email, String password, String phone) async {
   try {
     final response = await http.post(
       Uri.parse('$baseUrl/signup'),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
+        "name": name,
         "email": email,
         "password": password,
+        "phoneNumber": phone,
       }),
     );
 
@@ -26,7 +28,6 @@ Future<Map<String, dynamic>> signupUser(String email, String password) async {
       };
     }
   } catch (e) {
-    print("회원가입 오류: $e");
     return {
       "error": "서버와 연결할 수 없습니다.",
       "statusCode": 503

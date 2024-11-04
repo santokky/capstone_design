@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../utils/http_signup.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -13,16 +12,20 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
+  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
 
   Future<void> _signup() async {
     print("회원가입 버튼 눌림"); // 버튼 클릭 확인 로그
+    String name = _nameController.text;
     String email = _emailController.text;
     String password = _passwordController.text;
+    String phone = _phoneController.text;
 
-    if (email.isNotEmpty && password.isNotEmpty) {
-      final response = await signupUser(email, password);
+    if (name.isNotEmpty && email.isNotEmpty && password.isNotEmpty && phone.isNotEmpty) {
+      final response = await signupUser(name, email, password, phone);
       print("회원가입 응답: $response"); // 서버 응답 확인
 
       if (response.containsKey('token')) {
@@ -30,43 +33,36 @@ class _SignupScreenState extends State<SignupScreen> {
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', response['token']);
         await prefs.setBool('isLoggedIn', true);
+        await prefs.setString('name', name);  // 이름 저장
+        await prefs.setString('phone', phone);  // 전화번호 저장
 
         widget.onSignupSuccess();
         Navigator.pop(context);
       } else {
         // 회원가입 실패 시 오류 메시지 표시
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: Theme.of(context).dialogTheme.backgroundColor,
-            title: const Text('회원가입 실패'),
-            content: Text(response['error'] ?? '알 수 없는 오류가 발생했습니다.'),
-            actions: [
-              TextButton(
-                child: const Text('확인'),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ],
-          ),
-        );
+        _showErrorDialog(response['error'] ?? '회원가입에 실패했습니다.');
       }
     } else {
       // 필드가 비어 있을 때 알림
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: Theme.of(context).dialogTheme.backgroundColor,
-          title: const Text('회원가입 실패'),
-          content: const Text('이메일과 비밀번호를 모두 입력해주세요.'),
-          actions: [
-            TextButton(
-              child: const Text('확인'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
-        ),
-      );
+      _showErrorDialog('이메일, 비밀번호, 이름, 전화번호를 모두 입력해주세요.');
     }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).dialogTheme.backgroundColor,
+        title: const Text('회원가입 실패'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            child: const Text('확인'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -127,9 +123,13 @@ class _SignupScreenState extends State<SignupScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      _buildTextField(_nameController, '이름을 입력해주세요', hintColor, textFieldColor, textColor),
+                      const SizedBox(height: 16),
                       _buildTextField(_emailController, '이메일을 입력해주세요', hintColor, textFieldColor, textColor),
                       const SizedBox(height: 16),
                       _buildTextField(_passwordController, '비밀번호를 입력해주세요', hintColor, textFieldColor, textColor, obscureText: true),
+                      const SizedBox(height: 16),
+                      _buildTextField(_phoneController, '전화번호를 입력해주세요', hintColor, textFieldColor, textColor),
                       const SizedBox(height: 30),
                       ElevatedButton(
                         onPressed: _signup,
@@ -214,8 +214,10 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 }
