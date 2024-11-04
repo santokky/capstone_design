@@ -67,43 +67,148 @@ class _EventScreenState extends State<EventScreen> {
   Future<void> _editEvent(Map<String, dynamic> event) async {
     final titleController = TextEditingController(text: event['title']);
     final descriptionController = TextEditingController(text: event['description']);
-    final organizerController = TextEditingController(text: event['organizer'] ?? '');
     final locationController = TextEditingController(text: event['location'] ?? '');
-    final startDateController = TextEditingController(
-        text: event['start_time'] ?? event['contest_start_date'] ?? '');
-    final endDateController = TextEditingController(
-        text: event['end_time'] ?? event['contest_end_date'] ?? '');
-    String? selectedCategory = event['category'];
-    String? selectedField = event['field'];
+    final startDateController = TextEditingController(text: event['start_time'] ?? ''); // 정의 추가
+    final endDateController = TextEditingController(text: event['end_time'] ?? ''); // 정의 추가
 
-    // 일반 일정인지 공모전 일정인지 구분
+    final organizerController = TextEditingController(text: event['organizer'] ?? '');
+    final applicationStartDateController = TextEditingController(text: event['application_start_date'] ?? '');
+    final applicationEndDateController = TextEditingController(text: event['application_end_date'] ?? '');
+    final contestStartDateController = TextEditingController(text: event['contest_start_date'] ?? '');
+    final contestEndDateController = TextEditingController(text: event['contest_end_date'] ?? '');
+    final applicationLinkController = TextEditingController(text: event['application_link'] ?? '');
+    final contactController = TextEditingController(text: event['contact'] ?? '');
+    // 기본값 설정 시 리스트 내에 있는지 확인 후 설정
+    String? selectedCategory = event['category'];
+    if (selectedCategory == null || !categories.contains(selectedCategory)) {
+      selectedCategory = null; // 리스트에 없는 경우 null로 설정
+    }
+
+    String? selectedField = event['field'];
+    if (selectedField == null || !fields.contains(selectedField)) {
+      selectedField = null; // 리스트에 없는 경우 null로 설정
+    }
+
     bool isGeneralEvent = event.containsKey('start_time');
+
+    Future<void> _selectDateTime(TextEditingController controller) async {
+      DateTime? pickedDate = await showDatePicker(
+        context: context,
+        initialDate: DateTime.now(),
+        firstDate: DateTime(2000),
+        lastDate: DateTime(2100),
+      );
+
+      if (pickedDate != null) {
+        TimeOfDay? pickedTime = await showTimePicker(
+          context: context,
+          initialTime: TimeOfDay.now(),
+        );
+
+        if (pickedTime != null) {
+          DateTime dateTime = DateTime(
+            pickedDate.year,
+            pickedDate.month,
+            pickedDate.day,
+            pickedTime.hour,
+            pickedTime.minute,
+          );
+          String formattedDateTime = DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
+          setState(() {
+            controller.text = formattedDateTime;
+          });
+        }
+      }
+    }
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('이벤트 수정'),
+          title: Text(isGeneralEvent ? '일반 일정 수정' : '공모전 일정 수정'),
           content: SingleChildScrollView(
             child: Column(
               children: [
                 TextField(
                   controller: titleController,
-                  maxLines: 2,
                   decoration: const InputDecoration(labelText: '제목'),
                 ),
                 TextField(
                   controller: descriptionController,
-                  maxLines: 5,
                   decoration: const InputDecoration(labelText: '상세 설명'),
                 ),
-                TextField(controller: organizerController, decoration: const InputDecoration(labelText: '주최자')),
-                TextField(controller: locationController, decoration: const InputDecoration(labelText: '장소')),
-                TextField(controller: startDateController, decoration: const InputDecoration(labelText: '시작 날짜')),
-                TextField(controller: endDateController, decoration: const InputDecoration(labelText: '종료 날짜')),
-
-                // 공모전 일정일 때만 표시
-                if (!isGeneralEvent) ...[
+                TextField(
+                  controller: locationController,
+                  decoration: const InputDecoration(labelText: '장소'),
+                ),
+                if (isGeneralEvent) ...[
+                  GestureDetector(
+                    onTap: () => _selectDateTime(startDateController),
+                    child: AbsorbPointer(
+                      child: TextField(
+                        controller: startDateController,
+                        decoration: const InputDecoration(labelText: '시작 날짜'),
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => _selectDateTime(endDateController),
+                    child: AbsorbPointer(
+                      child: TextField(
+                        controller: endDateController,
+                        decoration: const InputDecoration(labelText: '종료 날짜'),
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  TextField(
+                    controller: organizerController,
+                    decoration: const InputDecoration(labelText: '주최자'),
+                  ),
+                  GestureDetector(
+                    onTap: () => _selectDateTime(applicationStartDateController),
+                    child: AbsorbPointer(
+                      child: TextField(
+                        controller: applicationStartDateController,
+                        decoration: const InputDecoration(labelText: '신청 시작 날짜'),
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => _selectDateTime(applicationEndDateController),
+                    child: AbsorbPointer(
+                      child: TextField(
+                        controller: applicationEndDateController,
+                        decoration: const InputDecoration(labelText: '신청 종료 날짜'),
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => _selectDateTime(contestStartDateController),
+                    child: AbsorbPointer(
+                      child: TextField(
+                        controller: contestStartDateController,
+                        decoration: const InputDecoration(labelText: '공모전 시작 날짜'),
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => _selectDateTime(contestEndDateController),
+                    child: AbsorbPointer(
+                      child: TextField(
+                        controller: contestEndDateController,
+                        decoration: const InputDecoration(labelText: '공모전 종료 날짜'),
+                      ),
+                    ),
+                  ),
+                  TextField(
+                    controller: applicationLinkController,
+                    decoration: const InputDecoration(labelText: '신청 경로'),
+                  ),
+                  TextField(
+                    controller: contactController,
+                    decoration: const InputDecoration(labelText: '지원 연락처'),
+                  ),
                   DropdownButtonFormField<String>(
                     value: (selectedCategory?.isEmpty ?? true) ? null : selectedCategory,
                     items: categories.map((category) {
@@ -144,21 +249,52 @@ class _EventScreenState extends State<EventScreen> {
                 final updatedEvent = {
                   'title': titleController.text,
                   'description': descriptionController.text,
-                  'organizer': organizerController.text,
                   'location': locationController.text,
-                  'start_time': event['start_time'] ?? '',
-                  'end_time': event['end_time'] ?? '',
-                  'category': !isGeneralEvent ? selectedCategory ?? '' : '',
-                  'field': !isGeneralEvent ? selectedField ?? '' : '',
                 };
 
                 if (isGeneralEvent) {
-                  await _generalDbHelper.updateGeneralEvent(event['id'], updatedEvent);
+                  updatedEvent.addAll({
+                    'start_time': startDateController.text,
+                    'end_time': endDateController.text,
+                  });
                 } else {
-                  await _dbHelper.updateEvent(event['id'], updatedEvent);
+                  updatedEvent.addAll({
+                    'organizer': organizerController.text,
+                    'application_start_date': applicationStartDateController.text,
+                    'application_end_date': applicationEndDateController.text,
+                    'contest_start_date': contestStartDateController.text,
+                    'contest_end_date': contestEndDateController.text,
+                    'application_link': applicationLinkController.text,
+                    'contact': contactController.text,
+                    'category': selectedCategory ?? '',
+                    'field': selectedField ?? '',
+                  });
                 }
-                Navigator.of(context).pop();
-                await _loadEvents();
+
+                try {
+                  int result;
+                  if (isGeneralEvent) {
+                    result = await _generalDbHelper.updateGeneralEvent(event['id'], updatedEvent);
+                  } else {
+                    result = await _dbHelper.updateEvent(event['id'], updatedEvent);
+                  }
+
+                  if (result > 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('${isGeneralEvent ? '일반' : '공모전'} 일정이 성공적으로 수정되었습니다.')),
+                    );
+                    Navigator.of(context).pop();
+                    await _loadEvents(); // UI 갱신
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('이벤트 수정에 실패했습니다. 다시 시도해 주세요.')),
+                    );
+                  }
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('오류 발생: $e')),
+                  );
+                }
               },
               child: const Text('저장'),
             ),
@@ -167,6 +303,10 @@ class _EventScreenState extends State<EventScreen> {
       },
     );
   }
+
+
+
+
 
 
   @override
