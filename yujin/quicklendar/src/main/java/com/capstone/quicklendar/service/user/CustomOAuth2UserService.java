@@ -6,6 +6,7 @@ import com.capstone.quicklendar.domain.user.User;
 import com.capstone.quicklendar.domain.user.UserType;
 import com.capstone.quicklendar.repository.user.OAuthUserRepository;
 import com.capstone.quicklendar.repository.user.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -165,6 +166,12 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         }
     }
 
+    @Value("${spring.security.oauth2.client.registration.naver.client-id}")
+    private String naverClientId;
+
+    @Value("${spring.security.oauth2.client.registration.naver.client-secret}")
+    private String naverClientSecret;
+
     // 네이버 연동 해제 메서드
     private void revokeNaverToken(String accessToken) {
         RestTemplate restTemplate = new RestTemplate();
@@ -173,8 +180,8 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         // 요청 파라미터 설정
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("grant_type", "delete");
-        params.add("client_id", "");  // 네이버 클라이언트 ID 설정
-        params.add("client_secret", "");  // 네이버 클라이언트 시크릿 설정
+        params.add("client_id", naverClientId);  // 네이버 클라이언트 ID 설정
+        params.add("client_secret", naverClientSecret);  // 네이버 클라이언트 시크릿 설정
         params.add("access_token", accessToken);
         params.add("service_provider", "naver");
 

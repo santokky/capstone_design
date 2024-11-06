@@ -4,6 +4,9 @@ import com.capstone.quicklendar.repository.user.OAuthUserRepository;
 import com.capstone.quicklendar.repository.user.UserRepository;
 import com.capstone.quicklendar.service.user.CustomOAuth2UserService;
 import com.capstone.quicklendar.service.user.CustomUserDetailsService;
+import com.capstone.quicklendar.util.jwt.JwtAuthenticationFilter;
+import com.capstone.quicklendar.util.jwt.JwtTokenProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.RequestEntity;
@@ -11,6 +14,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.LogoutConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -20,6 +25,7 @@ import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResp
 import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequestEntityConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.util.MultiValueMap;
 
 @Configuration
@@ -28,41 +34,27 @@ public class SecurityConfig {
     private final CustomUserDetailsService customUserDetailsService;
     private final UserRepository userRepository;
     private final OAuthUserRepository oauthUserRepository;
+    private final JwtTokenProvider jwtTokenProvider;
 
-    public SecurityConfig(CustomUserDetailsService customUserDetailsService, UserRepository userRepository, OAuthUserRepository oauthUserRepository) {
+    public SecurityConfig(CustomUserDetailsService customUserDetailsService, UserRepository userRepository, OAuthUserRepository oauthUserRepository, JwtTokenProvider jwtTokenProvider) {
         this.customUserDetailsService = customUserDetailsService;
         this.userRepository = userRepository;
         this.oauthUserRepository = oauthUserRepository;
+        this.jwtTokenProvider = jwtTokenProvider;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class)
+                .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/", "/index", "/login", "/join", "/resources/**", "/oauth2/**").permitAll()
+                        .requestMatchers("/", "/index", "/signup", "/login", "/join", "/resources/**", "/oauth2/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                .oauth2Login(oauth -> oauth
-                        .loginPage("/login")
-                        .tokenEndpoint(token -> token
-                                .accessTokenResponseClient(accessTokenResponseClient()) // 커스텀 클라이언트 사용
-                        )
-                        .userInfoEndpoint(userInfo -> userInfo
-                                .userService(customOAuth2UserService())  // CustomOAuth2UserService 사용
-                        )
-                        .defaultSuccessUrl("/", true)
-                        .failureUrl("/login?error=true")
-                )
-                .formLogin(login -> login
-                        .loginPage("/login")
-                        .defaultSuccessUrl("/", true)
-                        .permitAll()
-                )
-                .logout(logout -> logout.permitAll())
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                        .maximumSessions(1)
-                );
+                .formLogin(AbstractHttpConfigurer::disable)
+                .logout(LogoutConfigurer::permitAll)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         return http.build();
     }
@@ -76,7 +68,7 @@ public class SecurityConfig {
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
         authProvider.setUserDetailsService(customUserDetailsService);
-        authProvider.setPasswordEncoder(passwordEncoder()); // BCryptPasswordEncoder 사용
+        authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }
 
@@ -95,6 +87,12 @@ public class SecurityConfig {
         return new CustomOAuth2UserService(userRepository, oauthUserRepository);
     }
 
+    @Value("${spring.security.oauth2.client.registration.naver.client-secret}")
+    private String naverClientSecret;
+
+    @Value("${spring.security.oauth2.client.registration.google.client-secret}")
+    private String googleClientSecret;
+
     @Bean
     public OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> accessTokenResponseClient() {
         DefaultAuthorizationCodeTokenResponseClient tokenResponseClient = new DefaultAuthorizationCodeTokenResponseClient();
@@ -106,12 +104,11 @@ public class SecurityConfig {
 
                 MultiValueMap<String, String> body = (MultiValueMap<String, String>) originalRequest.getBody();
 
-                // 네이버와 구글 각각에 대해 client_secret을 추가
                 String provider = authorizationGrantRequest.getClientRegistration().getRegistrationId();
                 if ("naver".equals(provider)) {
-                    body.add("client_secret", "{}");  // 네이버 시크릿
+                    body.add("client_secret", naverClientSecret);  // 네이버 시크릿
                 } else if ("google".equals(provider)) {
-                    body.add("client_secret", "");  // 구글 시크릿
+                    body.add("client_secret", googleClientSecret);  // 구글 시크릿
                 }
 
                 return new RequestEntity<>(body, originalRequest.getHeaders(), originalRequest.getMethod(), originalRequest.getUrl());

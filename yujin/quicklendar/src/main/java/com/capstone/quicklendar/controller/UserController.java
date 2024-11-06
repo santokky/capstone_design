@@ -5,59 +5,100 @@ import com.capstone.quicklendar.domain.user.CustomUserDetails;
 import com.capstone.quicklendar.domain.user.User;
 import com.capstone.quicklendar.service.user.CustomOAuth2UserService;
 import com.capstone.quicklendar.service.user.UserService;
+import com.capstone.quicklendar.util.dto.JwtResponse;
+import com.capstone.quicklendar.util.dto.LoginRequest;
+import com.capstone.quicklendar.util.dto.SignUpRequest;
+import com.capstone.quicklendar.util.jwt.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-@Controller
+import java.util.stream.Collectors;
+import org.springframework.security.core.GrantedAuthority;
+
+@RestController
 public class UserController {
 
     private final UserService userService;
     private final CustomOAuth2UserService customOAuth2UserService;
+    private final AuthenticationManager authenticationManager;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Autowired
-    public UserController(UserService userService, CustomOAuth2UserService customOAuth2UserService) {
+    public UserController(UserService userService, CustomOAuth2UserService customOAuth2UserService,
+                          AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider) {
         this.userService = userService;
         this.customOAuth2UserService = customOAuth2UserService;
+        this.authenticationManager = authenticationManager;
+        this.jwtTokenProvider = jwtTokenProvider;
     }
 
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    // 메인 페이지
-    @GetMapping("/")
-    public String index() {
-        return "index";
-    }
-
-    // 회원가입 페이지 GET 요청
-    @GetMapping("/join")
-    public String showJoinForm(Model model) {
-        model.addAttribute("user", new User());
-        return "users/join"; // join.html 렌더링
-    }
-
-    // 회원가입 처리 POST 요청
-    @PostMapping("/join")
-    public String join(User user, Model model) {
+    // 회원가입 처리 - JSON
+    @PostMapping("/signup")
+    public ResponseEntity<String> signupUser(@RequestBody SignUpRequest signUpRequest) {
         try {
-            userService.join(user); // 회원가입 로직 실행
-            model.addAttribute("message", "회원가입이 완료되었습니다.");
-            return "redirect:/login"; // 회원가입 후 로그인 페이지로 리다이렉트
+            User user = new User();
+            user.setEmail(signUpRequest.getEmail());
+            user.setPassword(signUpRequest.getPassword());
+            user.setName(signUpRequest.getName());
+            user.setPhone(signUpRequest.getPhone());
+
+            Long userId = userService.join(user);
+
+            return ResponseEntity.status(HttpStatus.CREATED).body("회원가입이 완료되었습니다. User ID: " + userId);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("이미 존재하는 이메일입니다.");
         } catch (Exception e) {
-            model.addAttribute("error", e.getMessage());
-            return "users/join"; // 오류 발생 시 다시 회원가입 페이지로 이동
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("회원가입 중 오류가 발생했습니다.");
         }
     }
 
-    // 로그인 페이지 GET 요청
-    @GetMapping("/login")
-    public String showLoginForm() {
-        return "users/login"; // login.html 렌더링
+    // 로그인 처리 - JWT 발급
+    @PostMapping("/login")
+    public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
+
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            loginRequest.getEmail(), loginRequest.getPassword()
+                    )
+            );
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            String roles = authentication.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .collect(Collectors.joining(","));
+
+            String jwt = jwtTokenProvider.createToken(authentication.getName(), roles);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Bearer " + jwt);
+
+            return ResponseEntity.ok().headers(headers).body(new JwtResponse(jwt, "Bearer"));
+        } catch (AuthenticationException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인 실패: 잘못된 이메일 또는 비밀번호입니다.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("로그인 처리 중 오류가 발생했습니다.");
+        }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logoutUser() {
+        // JWT 토큰 삭제는 클라이언트에서 처리되므로 특별한 로직은 없음
+        return ResponseEntity.ok("로그아웃 성공");
     }
 
     // 회원 탈퇴 처리 POST 요청 (일반 사용자 + OAuth 사용자)
@@ -115,7 +156,6 @@ public class UserController {
 
         return "users/delete-account";  // 삭제 페이지로 이동
     }
-
 
     @GetMapping("/profile")
     public String showProfilePage(Model model) {Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
