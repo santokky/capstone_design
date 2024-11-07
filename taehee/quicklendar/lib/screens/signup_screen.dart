@@ -27,14 +27,9 @@ class _SignupScreenState extends State<SignupScreen> {
       final response = await signupUser(name, email, password, phone);
       print("회원가입 응답: $response"); // 서버 응답 확인
 
-      if (response.containsKey('token')) {
-        // 회원가입 성공 시 로그인 토큰을 SharedPreferences에 저장
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('token', response['token']);
-        await prefs.setBool('isLoggedIn', true);
-        await prefs.setString('name', name); // 이름 저장
-        await prefs.setString('phone', phone); // 전화번호 저장
-
+      if (response.containsKey('message') && response['statusCode'] == 201) {
+        // 회원가입 성공 시 성공 메시지 표시
+        _showSuccessDialog(response['message']);
         widget.onSignupSuccess();
         Navigator.pop(context);
       } else {
@@ -46,6 +41,24 @@ class _SignupScreenState extends State<SignupScreen> {
       _showErrorDialog('이메일, 비밀번호, 이름, 전화번호를 모두 입력해주세요.');
     }
   }
+
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).dialogTheme.backgroundColor,
+        title: const Text('회원가입 성공'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            child: const Text('확인'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   void _showErrorDialog(String message) {
     showDialog(

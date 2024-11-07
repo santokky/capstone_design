@@ -23,24 +23,24 @@ class _LoginScreenState extends State<LoginScreen> {
     String email = _emailController.text;
     String password = _passwordController.text;
 
-    // http_login.dart의 loginUser 함수 호출
+    // 로그인 요청을 보내고 응답을 받아옴
     final response = await loginUser(email, password);
 
     if (response.containsKey('token') && response['token'] != null) {
-      // 로그인 성공 시 토큰을 SharedPreferences에 저장
+      // 로그인 성공 시 토큰과 사용자 정보를 SharedPreferences에 저장
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString('token', response['token']);
+      await prefs.setString('token', response['token'] ?? "");
 
-      // null 체크 추가
-      if (response['email'] != null) {
-        await prefs.setString('userEmail', response['example@example.com']);
-      }
-      if (response['name'] != null) {
-        await prefs.setString('userName', response['홍길동']);
-      }
+      // 사용자 정보를 SharedPreferences에 저장 (null을 빈 문자열로 처리)
+      String userEmail = response['email'] ?? "";
+      String userName = response['name'] ?? "";
+
+      await prefs.setString('userEmail', userEmail);
+      await prefs.setString('userName', userName);
 
       await prefs.setBool('isLoggedIn', true);
       widget.onLoginSuccess(true);
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const MyApp()), // 로그인 성공 시 이동할 화면
@@ -50,6 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _showErrorDialog(response['error'] ?? '알 수 없는 오류가 발생했습니다.');
     }
   }
+
 
 
   void _showErrorDialog(String message) {

@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'http_login.dart';
 
 const String baseUrl = 'http://10.0.2.2:8080';
 
@@ -19,28 +18,10 @@ Future<Map<String, dynamic>> signupUser(String name, String email, String passwo
     );
 
     if (response.statusCode == 201) {
-      final responseData = jsonDecode(response.body);
-
-      // 응답 데이터에 token, name, email이 최상위에 있는 경우 처리
-      if (responseData.containsKey('token') && responseData.containsKey('name') && responseData.containsKey('email')) {
-        String token = responseData['token'];
-        String userName = responseData['name'];
-        String userEmail = responseData['email'];
-
-        await saveToken(token); // 토큰 저장
-
-        // 반환 데이터에 token, name, email 포함
-        return {
-          "token": token,
-          "name": userName,
-          "email": userEmail,
-        };
-      } else {
-        return {
-          "error": "응답 데이터에 필요한 정보가 없습니다.",
-          "statusCode": 500
-        };
-      }
+      return {
+        "message": "회원가입이 성공적으로 완료되었습니다.",
+        "statusCode": 201
+      };
     } else {
       return {
         "error": "회원가입에 실패했습니다. 다시 시도해주세요.",
