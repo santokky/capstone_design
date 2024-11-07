@@ -82,12 +82,15 @@ public class UserController {
                     .map(GrantedAuthority::getAuthority)
                     .collect(Collectors.joining(","));
 
+            User user = ((CustomUserDetails) authentication.getPrincipal()).getUser();
             String jwt = jwtTokenProvider.createToken(authentication.getName(), roles);
 
             HttpHeaders headers = new HttpHeaders();
             headers.set("Authorization", "Bearer " + jwt);
 
-            return ResponseEntity.ok().headers(headers).body(new JwtResponse(jwt, "Bearer"));
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(new JwtResponse(jwt, "Bearer", user.getName(), user.getEmail()));
         } catch (AuthenticationException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인 실패: 잘못된 이메일 또는 비밀번호입니다.");
         } catch (Exception e) {
