@@ -26,14 +26,20 @@ class _LoginScreenState extends State<LoginScreen> {
     // http_login.dart의 loginUser 함수 호출
     final response = await loginUser(email, password);
 
-    if (response.containsKey('token')) {
+    if (response.containsKey('token') && response['token'] != null) {
       // 로그인 성공 시 토큰을 SharedPreferences에 저장
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setString('token', response['token']);
-      await prefs.setBool('isLoggedIn', true);
-      await prefs.setString('userEmail', response['email']); // 사용자 이메일 저장
-      await prefs.setString('userName', response['name']);   // 사용자 이름 저장
 
+      // null 체크 추가
+      if (response['email'] != null) {
+        await prefs.setString('userEmail', response['example@example.com']);
+      }
+      if (response['name'] != null) {
+        await prefs.setString('userName', response['홍길동']);
+      }
+
+      await prefs.setBool('isLoggedIn', true);
       widget.onLoginSuccess(true);
       Navigator.pushReplacement(
         context,
@@ -44,6 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _showErrorDialog(response['error'] ?? '알 수 없는 오류가 발생했습니다.');
     }
   }
+
 
   void _showErrorDialog(String message) {
     showDialog(
