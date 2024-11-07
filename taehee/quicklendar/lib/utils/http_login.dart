@@ -16,29 +16,21 @@ Future<Map<String, dynamic>> loginUser(String email, String password) async {
     );
 
     if (response.statusCode == 200) {
-      try {
-        final responseData = jsonDecode(response.body);
+      final responseData = jsonDecode(response.body);
 
-        // 토큰 및 사용자 정보가 응답에 포함되어 있는지 확인
-        if (responseData['token'] != null) {
-          await saveToken(responseData['token']);
+      // 토큰 및 사용자 정보가 응답에 포함되어 있는지 확인
+      if (responseData.containsKey('token') && responseData.containsKey('name') && responseData.containsKey('email')) {
+        await saveToken(responseData['token']); // 토큰 저장
 
-          // 사용자 정보가 최상위에 있는 경우 그대로 저장
-          SharedPreferences prefs = await SharedPreferences.getInstance();
-          await prefs.setString('userName', responseData['name'] ?? ''); // 사용자 이름 저장
-          await prefs.setString('userEmail', responseData['email'] ?? ''); // 사용자 이메일 저장
+        // 사용자 정보가 포함된 경우 SharedPreferences에 저장
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('userName', responseData['name']); // 사용자 이름 저장
+        await prefs.setString('userEmail', responseData['email']); // 사용자 이메일 저장
 
-          return responseData;
-        } else {
-          return {
-            "error": "로그인에 실패했습니다. 토큰이 없습니다.",
-            "statusCode": 500
-          };
-        }
-      } catch (e) {
-        // JSON 파싱 오류 처리
+        return responseData; // 성공적으로 사용자 정보 반환
+      } else {
         return {
-          "error": "응답을 처리하는 중 오류가 발생했습니다: $e",
+          "error": "사용자 정보가 응답에 포함되지 않았습니다.",
           "statusCode": 500
         };
       }
