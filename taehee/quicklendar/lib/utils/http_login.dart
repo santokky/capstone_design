@@ -19,9 +19,23 @@ Future<Map<String, dynamic>> loginUser(String email, String password) async {
       try {
         final responseData = jsonDecode(response.body);
 
-        // 토큰이 null이 아닌지 확인
+        // 토큰 및 사용자 정보가 응답에 포함되어 있는지 확인
         if (responseData['token'] != null) {
           await saveToken(responseData['token']);
+
+          // 사용자 정보가 포함된 경우 SharedPreferences에 저장
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          if (responseData.containsKey('user')) {
+            final user = responseData['user'];
+            await prefs.setString('userName', user['name'] ?? ''); // 사용자 이름 저장
+            await prefs.setString('userEmail', user['email'] ?? ''); // 사용자 이메일 저장
+          } else {
+            return {
+              "error": "사용자 정보가 응답에 포함되지 않았습니다.",
+              "statusCode": 500
+            };
+          }
+
           return responseData;
         } else {
           return {
@@ -32,7 +46,7 @@ Future<Map<String, dynamic>> loginUser(String email, String password) async {
       } catch (e) {
         // JSON 파싱 오류 처리
         return {
-          "error": "응답을 처리하는 중 오류가 발생했습니다.",
+          "error": "응답을 처리하는 중 오류가 발생했습니다: $e",
           "statusCode": 500
         };
       }
@@ -44,7 +58,7 @@ Future<Map<String, dynamic>> loginUser(String email, String password) async {
     }
   } catch (e) {
     return {
-      "error": "서버와 연결할 수 없습니다.",
+      "error": "서버와 연결할 수 없습니다: $e",
       "statusCode": 503
     };
   }
