@@ -33,8 +33,8 @@ class _SettingScreenState extends State<SettingScreen> {
     setState(() {
       _notificationsEnabled = _prefs?.getBool('notificationsEnabled') ?? true;
       _darkTheme = _prefs?.getBool('darkTheme') ?? false;
-      _userName = _prefs?.getString('name') ?? '홍길동'; // 로그인된 사용자 이름 불러오기
-      _userEmail = _prefs?.getString('email') ?? 'example@example.com'; // 로그인된 사용자 이메일 불러오기
+      _userName = _prefs?.getString('userName') ?? '홍길동'; // 로그인된 사용자 이름 불러오기
+      _userEmail = _prefs?.getString('userEmail') ?? 'example@example.com'; // 로그인된 사용자 이메일 불러오기
     });
   }
 
@@ -154,10 +154,231 @@ class _SettingScreenState extends State<SettingScreen> {
             ),
           ),
           // ... 기존 설정 항목들
+          SwitchListTile(
+            secondary: Icon(Icons.notifications),
+            title: const Text('알림 설정'),
+            value: _notificationsEnabled,
+            onChanged: (bool value) {
+              setState(() {
+                _notificationsEnabled = value;
+              });
+              _saveSettings();
+              _showNotificationDialog(value);
+            },
+          ),
+          SwitchListTile(
+            secondary: Icon(Icons.brightness_6),
+            title: const Text('테마 설정'),
+            value: _darkTheme,
+            onChanged: (bool value) {
+              setState(() {
+                _darkTheme = value;
+              });
+              _saveSettings();
+              MyApp.setThemeMode(
+                  context, _darkTheme ? ThemeMode.dark : ThemeMode.light);
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.calendar_today),
+            title: const Text('달력 설정'),
+            subtitle: const Text('기본 보기 설정 및 공휴일 표시'),
+            onTap: () {
+              _showCalendarSettingsDialog();
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.help_outline),
+            title: const Text('도움말 및 지원'),
+            onTap: () {
+              _showHelpDialog();
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.backup),
+            title: const Text('백업 및 복원'),
+            onTap: () {
+              _showBackupDialog();
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.logout),
+            title: const Text('로그아웃'),
+            onTap: _logout,
+          ),
         ],
       ),
     );
   }
 
-// 기존 코드 유지: _showNotificationDialog, _showCalendarSettingsDialog, _showBackupDialog, _showHelpDialog
+  void _showNotificationDialog(bool isEnabled) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(isEnabled ? '알림 활성화' : '알림 비활성화'),
+          content: Text(
+              isEnabled ? '알림을 활성화했습니다.' : '알림을 비활성화했습니다.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('확인'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showCalendarSettingsDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        String _calendarView = _prefs?.getString('calendarView') ?? '월간';
+        bool _showHolidays = _prefs?.getBool('showHolidays') ?? true;
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('달력 설정'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    title: const Text('기본 보기'),
+                    trailing: DropdownButton<String>(
+                      value: _calendarView,
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          _calendarView = newValue!;
+                        });
+                      },
+                      items: <String>['월간', '2주간', '주간']
+                          .map<DropdownMenuItem<String>>((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  SwitchListTile(
+                    title: const Text('공휴일 표시'),
+                    value: _showHolidays,
+                    onChanged: (bool value) {
+                      setState(() {
+                        _showHolidays = value;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('취소'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    await _prefs?.setString('calendarView', _calendarView);
+                    await _prefs?.setBool('showHolidays', _showHolidays);
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('저장'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showBackupDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('백업 및 복원'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: const Text('백업 위치'),
+                trailing: DropdownButton<String>(
+                  value: 'Google Drive',
+                  onChanged: (String? newValue) {
+                  },
+                  items: <String>['Google Drive', '로컬 저장소']
+                      .map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                },
+                child: const Text('지금 백업'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                },
+                child: const Text('복원하기'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showHelpDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('도움말 및 지원'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: const Text('자주 묻는 질문'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => FAQScreen()),
+                  );
+                },
+              ),
+              ListTile(
+                title: const Text('사용 설명서'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => UserGuideScreen()),
+                  );
+                },
+              ),
+              ListTile(
+                title: const Text('고객 지원'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => CustomerSupportScreen()),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
