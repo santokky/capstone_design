@@ -91,7 +91,7 @@ class _SettingScreenState extends State<SettingScreen> {
                   backgroundImage: AssetImage('assets/img/default_profile.png'),
                 ),
                 title: Text(_userName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                subtitle: Text('한신대학교', style: TextStyle(fontSize: 16)),
+                subtitle: Text(_userEmail, style: TextStyle(fontSize: 16)),
               ),
               ListTile(
                 title: Text('이메일'),
@@ -145,7 +145,7 @@ class _SettingScreenState extends State<SettingScreen> {
                       backgroundImage: AssetImage('assets/img/default_profile.png'),
                     ),
                     title: Text(_userName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                    subtitle: Text('한신대학교', style: TextStyle(fontSize: 16)),
+                    subtitle: Text(_userEmail, style: TextStyle(fontSize: 16)),
                     trailing: Icon(Icons.arrow_forward_ios),
                     onTap: _showAccountInfoDialog,
                   ),

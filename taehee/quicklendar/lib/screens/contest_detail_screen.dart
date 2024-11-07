@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import '../models/contest.dart';
 import '../models/comment.dart';
@@ -17,8 +18,22 @@ class ContestDetailScreen extends StatefulWidget {
 class _ContestDetailScreenState extends State<ContestDetailScreen> {
   List<Comment> comments = [];
   final TextEditingController commentController = TextEditingController();
+  String userName = "사용자"; // 기본 사용자 이름
 
-  void addComment(String userName, String content) {
+  @override
+  void initState() {
+    super.initState();
+    _loadUserName();
+  }
+
+  Future<void> _loadUserName() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      userName = prefs.getString('userName') ?? "사용자";
+    });
+  }
+
+  void addComment(String content) {
     setState(() {
       comments.add(Comment(userName: userName, content: content, date: DateTime.now()));
     });
@@ -249,7 +264,7 @@ class _ContestDetailScreenState extends State<ContestDetailScreen> {
                   icon: Icon(Icons.send),
                   onPressed: () {
                     if (commentController.text.isNotEmpty) {
-                      addComment("사용자", commentController.text);
+                      addComment(commentController.text);
                     }
                   },
                 ),
