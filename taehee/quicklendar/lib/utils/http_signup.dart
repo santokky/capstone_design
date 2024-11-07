@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'http_login.dart';
 
 const String baseUrl = 'http://10.0.2.2:8080';
 
@@ -16,11 +18,10 @@ Future<Map<String, dynamic>> signupUser(String name, String email, String passwo
       }),
     );
 
-    print("서버 응답 상태 코드: ${response.statusCode}");
-    print("서버 응답 본문: ${response.body}");
-
     if (response.statusCode == 201) {
-      return jsonDecode(response.body);
+      final responseData = jsonDecode(response.body);
+      await saveToken(responseData['token']);
+      return responseData;
     } else {
       return {
         "error": "회원가입에 실패했습니다. 다시 시도해주세요.",

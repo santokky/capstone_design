@@ -1,4 +1,3 @@
-// login_screen.dart
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/http_login.dart'; // http_login.dart 파일을 import
@@ -40,21 +39,25 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } else {
       // 로그인 실패 시 오류 메시지 표시
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: Theme.of(context).dialogTheme.backgroundColor,
-          title: const Text('로그인 실패'),
-          content: Text(response['error'] ?? '알 수 없는 오류가 발생했습니다.'),
-          actions: [
-            TextButton(
-              child: const Text('확인'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
-        ),
-      );
+      _showErrorDialog(response['error'] ?? '알 수 없는 오류가 발생했습니다.');
     }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).dialogTheme.backgroundColor,
+        title: const Text('로그인 실패'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            child: const Text('확인'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

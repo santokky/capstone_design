@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../utils/http_signup.dart';
+import '../utils/http_signup.dart'; // http_signup.dart 파일을 import
 
 class SignupScreen extends StatefulWidget {
   final Function() onSignupSuccess;
@@ -18,7 +18,6 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _phoneController = TextEditingController();
 
   Future<void> _signup() async {
-    print("회원가입 버튼 눌림"); // 버튼 클릭 확인 로그
     String name = _nameController.text;
     String email = _emailController.text;
     String password = _passwordController.text;
@@ -29,12 +28,12 @@ class _SignupScreenState extends State<SignupScreen> {
       print("회원가입 응답: $response"); // 서버 응답 확인
 
       if (response.containsKey('token')) {
-        // 회원가입 성공 시 로그인 토큰 저장
+        // 회원가입 성공 시 로그인 토큰을 SharedPreferences에 저장
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', response['token']);
         await prefs.setBool('isLoggedIn', true);
-        await prefs.setString('name', name);  // 이름 저장
-        await prefs.setString('phone', phone);  // 전화번호 저장
+        await prefs.setString('name', name); // 이름 저장
+        await prefs.setString('phone', phone); // 전화번호 저장
 
         widget.onSignupSuccess();
         Navigator.pop(context);
@@ -206,7 +205,7 @@ class _SignupScreenState extends State<SignupScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.blueAccent),
+          borderSide: const BorderSide(color: Colors.blueAccent),
         ),
       ),
     );

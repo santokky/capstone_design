@@ -1,6 +1,6 @@
-// http_login.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 const String baseUrl = 'http://10.0.2.2:8080';
 
@@ -15,13 +15,19 @@ Future<Map<String, dynamic>> loginUser(String email, String password) async {
   );
 
   if (response.statusCode == 200) {
-    // 로그인 성공 시 서버 응답 반환
-    return jsonDecode(response.body);
+    final responseData = jsonDecode(response.body);
+    await saveToken(responseData['token']);
+    return responseData;
   } else {
-    // 로그인 실패 시 에러 메시지 반환
     return {
       "error": "로그인에 실패했습니다. 다시 시도해주세요.",
       "statusCode": response.statusCode
     };
   }
+}
+
+Future<void> saveToken(String token) async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  await prefs.setString('token', token);
+  await prefs.setBool('isLoggedIn', true);
 }

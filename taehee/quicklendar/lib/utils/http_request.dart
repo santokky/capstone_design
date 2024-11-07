@@ -1,16 +1,22 @@
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 const String baseUrl = 'http://10.0.2.2:8080';
-const Map<String, String> headers = {
-  "accept": "application/json",
-  "Content-Type": "application/json",
-};
 
 Future<Map<String, dynamic>> httpGet({required String path}) async {
   try {
-    final response = await http.get(Uri.parse('$baseUrl$path'), headers: headers);
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('token'); // 저장된 토큰 불러오기
+    final response = await http.get(
+      Uri.parse('$baseUrl$path'),
+      headers: {
+        "accept": "application/json",
+        "Content-Type": "application/json",
+        if (token != null) "Cookie": "jwt=$token", // 쿠키 헤더에 토큰 추가
+      },
+    );
     if (response.statusCode == 200) {
       try {
         Map<String, dynamic> resBody = jsonDecode(utf8.decode(response.bodyBytes));
@@ -31,7 +37,17 @@ Future<Map<String, dynamic>> httpGet({required String path}) async {
 
 Future<Map<String, dynamic>> httpPost({required String path, Map? data}) async {
   try {
-    final response = await http.post(Uri.parse('$baseUrl$path'), headers: headers, body: jsonEncode(data));
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('token');
+    final response = await http.post(
+      Uri.parse('$baseUrl$path'),
+      headers: {
+        "accept": "application/json",
+        "Content-Type": "application/json",
+        if (token != null) "Cookie": "jwt=$token", // 쿠키 헤더에 토큰 추가
+      },
+      body: jsonEncode(data),
+    );
     return {'statusCode': response.statusCode, 'body': response.body};
   } catch (e) {
     debugPrint("httpPost error: $e");
@@ -41,7 +57,17 @@ Future<Map<String, dynamic>> httpPost({required String path, Map? data}) async {
 
 Future<Map<String, dynamic>> httpPut({required String path, Map? data}) async {
   try {
-    final response = await http.put(Uri.parse('$baseUrl$path'), headers: headers, body: jsonEncode(data));
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('token');
+    final response = await http.put(
+      Uri.parse('$baseUrl$path'),
+      headers: {
+        "accept": "application/json",
+        "Content-Type": "application/json",
+        if (token != null) "Cookie": "jwt=$token", // 쿠키 헤더에 토큰 추가
+      },
+      body: jsonEncode(data),
+    );
     return {'statusCode': response.statusCode, 'body': response.body};
   } catch (e) {
     debugPrint("httpPut error: $e");
@@ -51,7 +77,17 @@ Future<Map<String, dynamic>> httpPut({required String path, Map? data}) async {
 
 Future<Map<String, dynamic>> httpDelete({required String path, Map? data}) async {
   try {
-    final response = await http.delete(Uri.parse('$baseUrl$path'), headers: headers, body: jsonEncode(data));
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('token');
+    final response = await http.delete(
+      Uri.parse('$baseUrl$path'),
+      headers: {
+        "accept": "application/json",
+        "Content-Type": "application/json",
+        if (token != null) "Cookie": "jwt=$token", // 쿠키 헤더에 토큰 추가
+      },
+      body: jsonEncode(data),
+    );
     return {'statusCode': response.statusCode, 'body': response.body};
   } catch (e) {
     debugPrint("httpDelete error: $e");
