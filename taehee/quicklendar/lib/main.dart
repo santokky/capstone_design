@@ -10,7 +10,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'l10n/app_localizations.dart';
 import 'screens/login_screen.dart';
-import 'screens/contest_screen.dart';  // 새로 추가된 파일 import
+import 'screens/contest_screen.dart';
 import 'package:quicklendar/database_helper.dart';
 
 void main() async {
@@ -42,7 +42,7 @@ class _MyAppState extends State<MyApp> {
   bool _notificationsEnabled = true;
   FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
   bool _isLoggedIn = false;
-  ThemeMode _themeMode = ThemeMode.light; // 기본은 라이트 모드
+  ThemeMode _themeMode = ThemeMode.light;
 
   @override
   void initState() {
@@ -56,12 +56,12 @@ class _MyAppState extends State<MyApp> {
     String? languageCode = prefs.getString('selectedLanguage') ?? 'ko';
     bool? notificationsEnabled = prefs.getBool('notificationsEnabled') ?? true;
     bool? isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
-    String? themeMode = prefs.getString('themeMode') ?? 'light';  // 테마 모드 불러오기
+    String? themeMode = prefs.getString('themeMode') ?? 'light';
     setState(() {
       _locale = Locale(languageCode, '');
       _notificationsEnabled = notificationsEnabled;
       _isLoggedIn = isLoggedIn;
-      _themeMode = themeMode == 'dark' ? ThemeMode.dark : ThemeMode.light;  // 테마 모드 설정
+      _themeMode = themeMode == 'dark' ? ThemeMode.dark : ThemeMode.light;
     });
   }
 
@@ -84,7 +84,7 @@ class _MyAppState extends State<MyApp> {
     setState(() {
       _themeMode = mode;
     });
-    prefs.setString('themeMode', mode == ThemeMode.dark ? 'dark' : 'light');  // 설정 저장
+    prefs.setString('themeMode', mode == ThemeMode.dark ? 'dark' : 'light');
   }
 
   void _setLoggedIn(bool isLoggedIn) async {
@@ -111,12 +111,9 @@ class _MyAppState extends State<MyApp> {
       ],
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
-      // 라이트 모드 테마
       theme: ThemeData(
-        brightness: Brightness.light,  // 라이트 모드일 때 밝은 테마 적용
-        appBarTheme: const AppBarTheme(
-          color: Colors.white,
-        ),
+        brightness: Brightness.light,
+        appBarTheme: const AppBarTheme(color: Colors.white),
         colorScheme: const ColorScheme.light(
           primary: Colors.blueAccent,
           secondary: Colors.white,
@@ -133,22 +130,18 @@ class _MyAppState extends State<MyApp> {
         canvasColor: Colors.white,
         primaryColor: Colors.blueAccent,
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          backgroundColor: Colors.white,  // 라이트 모드 바텀 네비게이션 배경색
-          selectedItemColor: Colors.blueAccent,  // 선택된 아이템 색상
-          unselectedItemColor: Colors.grey,  // 선택되지 않은 아이템 색상
+          backgroundColor: Colors.white,
+          selectedItemColor: Colors.blueAccent,
+          unselectedItemColor: Colors.grey,
         ),
       ),
-
-      // 다크 모드 테마
       darkTheme: ThemeData(
-        brightness: Brightness.dark,  // 다크 모드일 때 어두운 테마 적용
-        appBarTheme: AppBarTheme(
-          color: Colors.grey[900],  // 다크 모드 AppBar 배경색
-        ),
+        brightness: Brightness.dark,
+        appBarTheme: AppBarTheme(color: Colors.grey[900]),
         colorScheme: ColorScheme.dark(
           primary: Colors.grey,
           secondary: Colors.grey,
-          primaryContainer: Colors.grey[850],  // 배경을 더 어둡게
+          primaryContainer: Colors.grey[850],
           onBackground: Colors.white,
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
@@ -157,24 +150,22 @@ class _MyAppState extends State<MyApp> {
             foregroundColor: Colors.white,
           ),
         ),
-        scaffoldBackgroundColor: Colors.grey[900],  // 다크 모드 배경색
+        scaffoldBackgroundColor: Colors.grey[900],
         canvasColor: Colors.grey[900],
         primaryColor: Colors.grey,
         bottomNavigationBarTheme: BottomNavigationBarThemeData(
-          backgroundColor: Colors.grey[850],  // 다크 모드 바텀 네비게이션 배경색
-          selectedItemColor: Colors.white,  // 선택된 아이템 색상
-          unselectedItemColor: Colors.grey,  // 선택되지 않은 아이템 색상
+          backgroundColor: Colors.grey[850],
+          selectedItemColor: Colors.white,
+          unselectedItemColor: Colors.grey,
         ),
-        dialogTheme: DialogTheme(
-          backgroundColor: Colors.grey[850], // 팝업창 배경색
-        ),
+        dialogTheme: DialogTheme(backgroundColor: Colors.grey[850]),
       ),
-      themeMode: _themeMode, // 사용자가 설정한 테마 모드 적용
+      themeMode: _themeMode,
       initialRoute: _isLoggedIn ? '/home' : '/login',
       routes: {
         '/login': (context) => LoginScreen(onLoginSuccess: _setLoggedIn),
         '/home': (context) => const HomeScreen(),
-        '/contest': (context) => ContestScreen(), // 새로 추가된 경로
+        '/contest': (context) => ContestScreen(),
       },
     );
   }
@@ -189,6 +180,22 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+  String userEmail = 'example@example.com';
+  String userName = '홍길동';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserInfo();
+  }
+
+  Future<void> _loadUserInfo() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      userEmail = prefs.getString('userEmail') ?? 'hanshin@hs.ac.kr';
+      userName = prefs.getString('userName') ?? '홍길동';
+    });
+  }
 
   final _items = [
     SalomonBottomBarItem(
@@ -207,12 +214,12 @@ class _HomeScreenState extends State<HomeScreen> {
       selectedColor: Colors.blueAccent,
     ),
     SalomonBottomBarItem(
-      icon: const Icon(Icons.emoji_events),  // 공모전 탭이 설정 탭보다 앞에 오도록 위치 변경
+      icon: const Icon(Icons.emoji_events),
       title: const Text('공모전'),
       selectedColor: Colors.blueAccent,
     ),
     SalomonBottomBarItem(
-      icon: const Icon(Icons.settings_applications),  // 설정 탭 위치 변경
+      icon: const Icon(Icons.settings_applications),
       title: const Text('설정'),
       selectedColor: Colors.blueAccent,
     ),
@@ -222,8 +229,8 @@ class _HomeScreenState extends State<HomeScreen> {
     OCRScreen(),
     CalendarScreen(),
     EventScreen(),
-    ContestScreen(),  // 공모전 화면 위치 변경
-    SettingScreen(),  // 설정 화면 위치 변경
+    ContestScreen(),
+    SettingScreen(),
   ];
 
   @override
@@ -239,9 +246,7 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
-            onPressed: () {
-              // 아이콘을 눌렀을 때 수행할 작업
-            },
+            onPressed: () {},
             color: Colors.white,
           ),
           IconButton(
@@ -273,9 +278,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     actions: [
                       TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop(); // 팝업 닫기
-                        },
+                        onPressed: () => Navigator.of(context).pop(),
                         child: const Text('닫기'),
                       ),
                     ],
@@ -296,13 +299,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 backgroundImage: AssetImage('assets/img/default_profile.png'),
               ),
               accountEmail: Text(
-                'hanshin@hs.ac.kr',
+                userEmail,
                 style: TextStyle(
                   color: isDarkMode ? Colors.white : Colors.black,
                 ),
               ),
               accountName: Text(
-                '홍길동',
+                userName,
                 style: TextStyle(
                   color: isDarkMode ? Colors.white : Colors.black,
                 ),
@@ -342,7 +345,7 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.emoji_events), // 공모전 항목 위치 변경
+              leading: const Icon(Icons.emoji_events),
               title: const Text('공모전'),
               onTap: () {
                 setState(() {
@@ -352,7 +355,7 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.settings_applications), // 설정 항목 위치 변경
+              leading: const Icon(Icons.settings_applications),
               title: const Text('설정'),
               onTap: () {
                 setState(() {
@@ -389,4 +392,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-

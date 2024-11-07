@@ -31,6 +31,8 @@ class _LoginScreenState extends State<LoginScreen> {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setString('token', response['token']);
       await prefs.setBool('isLoggedIn', true);
+      await prefs.setString('userEmail', response['email']); // 사용자 이메일 저장
+      await prefs.setString('userName', response['name']);   // 사용자 이름 저장
 
       widget.onLoginSuccess(true);
       Navigator.pushReplacement(
