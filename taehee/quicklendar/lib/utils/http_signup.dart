@@ -21,11 +21,11 @@ Future<Map<String, dynamic>> signupUser(String name, String email, String passwo
     if (response.statusCode == 201) {
       final responseData = jsonDecode(response.body);
 
-      // 응답 데이터에 token과 user 정보가 있는지 확인 후 파싱
-      if (responseData.containsKey('token') && responseData.containsKey('user')) {
+      // 응답 데이터에 token, name, email이 최상위에 있는 경우 처리
+      if (responseData.containsKey('token') && responseData.containsKey('name') && responseData.containsKey('email')) {
         String token = responseData['token'];
-        String userName = responseData['user']['name'];
-        String userEmail = responseData['user']['email'];
+        String userName = responseData['name'];
+        String userEmail = responseData['email'];
 
         await saveToken(token); // 토큰 저장
 
