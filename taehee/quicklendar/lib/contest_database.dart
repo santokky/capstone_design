@@ -53,11 +53,27 @@ class ContestDatabase {
   }
 
   // 새로운 공모전 생성
-  Future<Contest> create(Contest contest) async {
+  Future<Contest?> create(Contest contest) async {
     final db = await instance.database;
+
+    // 제목으로 중복 검사
+    final List<Map<String, dynamic>> existingContest = await db.query(
+      'contests',
+      where: 'title = ?',
+      whereArgs: [contest.title],
+    );
+
+    // 중복된 공모전이 있을 경우, 저장하지 않고 null 반환
+    if (existingContest.isNotEmpty) {
+      print('이미 존재하는 공모전: ${contest.title}');
+      return null;
+    }
+
+    // 중복되지 않는 경우에만 저장
     final id = await db.insert('contests', contest.toMap());
     return contest.copyWith(id: id);
   }
+
 
   Future<List<String>> getAllOrganizers() async {
     final db = await instance.database;
