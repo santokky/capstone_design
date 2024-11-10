@@ -428,7 +428,7 @@ $chunk
         : Container(
       width: 320,
       height: 400,
-      color: Colors.grey,
+      child: Image.asset('assets/img/ocr_image.png'), // 기본 이미지 설정
     );
   }
 

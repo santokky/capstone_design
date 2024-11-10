@@ -245,11 +245,6 @@ class _HomeScreenState extends State<HomeScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {},
-            color: Colors.white,
-          ),
-          IconButton(
             icon: const Icon(Icons.notifications),
             onPressed: () async {
               final notifications = await DatabaseHelper().getNotifications();

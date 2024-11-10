@@ -141,6 +141,7 @@ flutter:
     - assets/img/default_profile.png
     - assets/img/appstore.png
     - assets/img/playstore.png
+    - assets/img/ocr_image.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
