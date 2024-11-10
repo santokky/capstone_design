@@ -161,13 +161,38 @@ class _CalendarScreenState extends State<CalendarScreen> {
     });
   }
 
+  DateTime? parseEventDate(String dateString) {
+    // 사용할 다양한 날짜 형식
+    final List<DateFormat> formats = [
+      DateFormat('yyyy년 MM월 dd일 (E)', 'ko_KR'), // 요일 포함 형식
+      DateFormat('yyyy년 MM월 dd일'), // 요일 없는 형식
+      DateFormat('yyyy.MM.dd'), // 점(.) 구분 형식
+      DateFormat('yyyy.MM.dd.'), // 점(.) 구분 형식 +일자에 점하나 더
+      DateFormat('yyyy-MM-dd'), // 대시(-) 구분 형식
+    ];
+
+    for (final format in formats) {
+      try {
+        return format.parse(dateString);
+      } catch (e) {
+        // 형식이 맞지 않을 경우 다음 형식으로 시도
+        continue;
+      }
+    }
+
+    // 모든 형식이 실패한 경우 null 반환
+    print('Error parsing event date: unable to parse $dateString');
+    return null;
+  }
+
   Future<void> _loadEvents() async {
     final events = await _dbHelper.queryAllEvents();
     setState(() {
       _events.clear();
       for (var event in events) {
-        try {
-          final date = DateFormat('yyyy년 MM월 dd일', 'ko_KR').parse(event['contest_start_date']);
+        // 날짜 파싱 시 parseEventDate 함수 사용
+        final date = parseEventDate(event['contest_start_date']);
+        if (date != null) {
           final eventDate = DateTime.utc(date.year, date.month, date.day);
           if (_events[eventDate] == null) {
             _events[eventDate] = [];
@@ -186,8 +211,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
             category: event['category'] ?? '',
             field: event['field'] ?? '',
           ));
-        } catch (e) {
-          print('Error parsing event date: $e');
+        } else {
+          print('Error parsing event date: unable to parse ${event['contest_start_date']}');
         }
       }
     });
@@ -197,8 +222,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final generalEvents = await _generalDbHelper.queryAllGeneralEvents();
     setState(() {
       for (var event in generalEvents) {
-        try {
-          final startDate = DateFormat('yyyy-MM-dd').parse(event['start_time']);
+        // 날짜 파싱 시 parseEventDate 함수 사용
+        final startDate = parseEventDate(event['start_time']);
+        if (startDate != null) {
           final eventDate = DateTime.utc(startDate.year, startDate.month, startDate.day);
           if (_events[eventDate] == null) {
             _events[eventDate] = [];
@@ -212,8 +238,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
             reminderTime: event['reminder_time'],
             createdAt: event['created_at'] ?? '',
           ));
-        } catch (e) {
-          print('Error parsing general event date: $e');
+        } else {
+          print('Error parsing general event date: unable to parse ${event['start_time']}');
         }
       }
     });
@@ -430,6 +456,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       initialDate: DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
+      locale: const Locale('ko'), // 한국어로 설정
     );
     return picked;
   }

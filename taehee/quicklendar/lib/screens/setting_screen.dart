@@ -99,7 +99,7 @@ class _SettingScreenState extends State<SettingScreen> {
               ),
               ListTile(
                 title: Text('가입 날짜'),
-                subtitle: Text('2023년 1월 1일'), // 예시로 고정된 값 사용
+                subtitle: Text('2024년 9월 1일'), // 예시로 고정된 값 사용
               ),
               ListTile(
                 title: Text('계정 유형'),

@@ -338,6 +338,7 @@ $chunk
             initialDate: initialDate,
             firstDate: DateTime(2000),
             lastDate: DateTime(2100),
+            locale: const Locale('ko'), // 한국어로 설정
           );
           if (pickedDate != null) {
             // 선택된 날짜를 detectedData와 controller에 반영

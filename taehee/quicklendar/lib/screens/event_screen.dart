@@ -98,6 +98,7 @@ class _EventScreenState extends State<EventScreen> {
         initialDate: DateTime.now(),
         firstDate: DateTime(2000),
         lastDate: DateTime(2100),
+        locale: const Locale('ko'), // 한국어로 설정
       );
 
       if (pickedDate != null) {

@@ -210,45 +210,33 @@ class DatabaseHelper {
     final List<Map<String, dynamic>> events = await queryAllEvents(); // 모든 이벤트 가져오기
 
     // 여러 가지 날짜 형식을 처리하기 위한 DateFormat
-    final DateFormat dateFormatWithDay = DateFormat('yyyy년 MM월 dd일 (E)', 'ko_KR'); // 요일이 포함된 형식
-    final DateFormat dateFormatWithoutDay = DateFormat('yyyy년 MM월 dd일'); // 요일이 없는 형식
-    final DateFormat alternateDateFormat = DateFormat('yyyy.MM.dd'); // 다른 형식
-    final DateFormat standardDateFormat = DateFormat('yyyy-MM-dd'); // yyyy-MM-dd 형식 추가
+    final List<DateFormat> dateFormats = [
+      DateFormat('yyyy년 MM월 dd일 (E)', 'ko_KR'), // 요일 포함 형식
+      DateFormat('yyyy년 MM월 dd일'), // 요일 없는 형식
+      DateFormat('yyyy.MM.dd'), // 점(.) 구분 형식
+      DateFormat('yyyy.MM.dd.'), // 점(.) 구분 형식 +일자에 점하나 더
+      DateFormat('yyyy-MM-dd'), // 대시(-) 구분 형식
+    ];
+
+    // 날짜 파싱 함수: 여러 형식을 시도
+    DateTime parseDate(String dateStr) {
+      for (var format in dateFormats) {
+        try {
+          return format.parse(dateStr);
+        } catch (e) {
+          continue; // 다음 형식으로 시도
+        }
+      }
+      throw FormatException('지원하지 않는 날짜 형식: $dateStr'); // 모든 형식이 실패할 경우
+    }
 
     for (var event in events) {
       try {
-        // 날짜 파싱 시 여러 형식을 시도
-        DateTime applicationStart;
-        DateTime applicationEnd;
-        DateTime contestStart;
-        DateTime contestEnd;
-
-        try {
-          applicationStart = dateFormatWithDay.parse(event['application_start_date']);
-          applicationEnd = dateFormatWithDay.parse(event['application_end_date']);
-          contestStart = dateFormatWithDay.parse(event['contest_start_date']);
-          contestEnd = dateFormatWithDay.parse(event['contest_end_date']);
-        } catch (e) {
-          try {
-            applicationStart = dateFormatWithoutDay.parse(event['application_start_date']);
-            applicationEnd = dateFormatWithoutDay.parse(event['application_end_date']);
-            contestStart = dateFormatWithoutDay.parse(event['contest_start_date']);
-            contestEnd = dateFormatWithoutDay.parse(event['contest_end_date']);
-          } catch (e) {
-            try {
-              applicationStart = alternateDateFormat.parse(event['application_start_date']);
-              applicationEnd = alternateDateFormat.parse(event['application_end_date']);
-              contestStart = alternateDateFormat.parse(event['contest_start_date']);
-              contestEnd = alternateDateFormat.parse(event['contest_end_date']);
-            } catch (e) {
-              // yyyy-MM-dd 형식을 마지막으로 시도
-              applicationStart = standardDateFormat.parse(event['application_start_date']);
-              applicationEnd = standardDateFormat.parse(event['application_end_date']);
-              contestStart = standardDateFormat.parse(event['contest_start_date']);
-              contestEnd = standardDateFormat.parse(event['contest_end_date']);
-            }
-          }
-        }
+        // 각 날짜 필드를 독립적으로 파싱
+        DateTime applicationStart = parseDate(event['application_start_date']);
+        DateTime applicationEnd = parseDate(event['application_end_date']);
+        DateTime contestStart = parseDate(event['contest_start_date']);
+        DateTime contestEnd = parseDate(event['contest_end_date']);
 
         // 공모전 객체 생성 및 저장
         Contest contest = Contest(
