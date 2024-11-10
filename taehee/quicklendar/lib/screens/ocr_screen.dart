@@ -178,7 +178,7 @@ $chunk
       print('API 응답 텍스트: $completionText');
 
       final Map<String, String?> chunkData = {
-        'title': RegExp(r'공모전 제목: (.+)').firstMatch(completionText)?.group(1)?.trim(),
+        'title': RegExp(r'제목: (.+)').firstMatch(completionText)?.group(1)?.trim(),
         'organizer': RegExp(r'주최자: (.+)').firstMatch(completionText)?.group(1)?.trim(),
         'description': RegExp(r'상세 설명: (.+)').firstMatch(completionText)?.group(1)?.trim(),
         'location': RegExp(r'장소: (.+)').firstMatch(completionText)?.group(1)?.trim(),
@@ -232,6 +232,17 @@ $chunk
 
   // 사용자 확인 다이얼로그
   void _showConfirmationDialog() {
+    // 기본값 설정
+    if (!detectedData.containsKey('title') || detectedData['title'] == null || detectedData['title']!.isEmpty) {
+      detectedData['title'] = "제목 없음";
+    }
+    if (!detectedData.containsKey('category') || detectedData['category'] == null || detectedData['category']!.isEmpty) {
+      detectedData['category'] = "기타";
+    }
+    if (!detectedData.containsKey('field') || detectedData['field'] == null || detectedData['field']!.isEmpty) {
+      detectedData['field'] = "대외활동";
+    }
+
     showDialog(
       context: context,
       builder: (context) {
@@ -250,70 +261,19 @@ $chunk
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ...detectedData.entries.map((entry) {
-                  if (entry.key == 'category') {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: DropdownButtonFormField<String>(
-                        decoration: InputDecoration(
-                          labelText: '카테고리',
-                          border: OutlineInputBorder(),
-                        ),
-                        value: categories.contains(selectedCategory ?? entry.value) ? selectedCategory ?? entry.value : null, // 초기값 설정
-                        items: categories.map((category) {
-                          return DropdownMenuItem(
-                            value: category,
-                            child: Text(category),
-                          );
-                        }).toList(),
-                        onChanged: (value) => setState(() => selectedCategory = value),
-                      ),
-                    );
-                  } else if (entry.key == 'field') {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: DropdownButtonFormField<String>(
-                        decoration: InputDecoration(
-                          labelText: '활동 분야',
-                          border: OutlineInputBorder(),
-                        ),
-                        value: fields.contains(selectedField ?? entry.value) ? selectedField ?? entry.value : null, // 초기값 설정
-                        items: fields.map((field) {
-                          return DropdownMenuItem(
-                            value: field,
-                            child: Text(field),
-                          );
-                        }).toList(),
-                        onChanged: (value) => setState(() => selectedField = value),
-                      ),
-                    );
-                  } else if (entry.key == 'title' || entry.key == 'description' || entry.key == 'organizer' || entry.key == 'location') {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: TextFormField(
-                        maxLines: entry.key == 'title' ? 2 : entry.key == 'description' ? 8 : 2,
-                        decoration: InputDecoration(
-                          labelText: _getLabelText(entry.key),
-                          border: OutlineInputBorder(),
-                        ),
-                        initialValue: entry.value,
-                        onChanged: (value) => detectedData[entry.key] = value,
-                      ),
-                    );
-                  } else {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: TextFormField(
-                        decoration: InputDecoration(
-                          labelText: _getLabelText(entry.key),
-                          border: OutlineInputBorder(),
-                        ),
-                        initialValue: entry.value,
-                        onChanged: (value) => detectedData[entry.key] = value,
-                      ),
-                    );
-                  }
-                }).toList(),
+                // 요청된 순서에 따라 각 필드를 표시
+                _buildTextField('공모전 제목', 'title'),
+                _buildTextField('주최자', 'organizer'),
+                _buildTextField('상세 설명', 'description', maxLines: 8),
+                _buildTextField('장소', 'location'),
+                _buildDateField('신청 시작 날짜', 'application_start_date'),
+                _buildDateField('신청 종료 날짜', 'application_end_date'),
+                _buildDateField('공모전 시작 날짜', 'contest_start_date'),
+                _buildDateField('공모전 종료 날짜', 'contest_end_date'),
+                _buildTextField('신청 경로', 'application_link'),
+                _buildTextField('지원 연락처', 'contact'),
+                _buildDropdownField('카테고리', 'category', categories, selectedCategory),
+                _buildDropdownField('활동 분야', 'field', fields, selectedField),
               ],
             ),
           ),
@@ -336,6 +296,87 @@ $chunk
       },
     );
   }
+
+// 각 필드를 생성하는 함수들
+  Widget _buildTextField(String label, String key, {int maxLines = 2}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: TextFormField(
+        maxLines: maxLines,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(),
+        ),
+        initialValue: detectedData[key],
+        onChanged: (value) => detectedData[key] = value,
+      ),
+    );
+  }
+
+  Widget _buildDateField(String label, String key) {
+    // 텍스트 필드를 제어할 TextEditingController 생성
+    TextEditingController controller = TextEditingController(text: detectedData[key]);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: TextFormField(
+        controller: controller,
+        readOnly: true,  // 필드를 읽기 전용으로 설정하여 회색이 아닌 기본 색상으로 유지
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(),
+        ),
+        onTap: () async {
+          DateTime? initialDate;
+          try {
+            initialDate = DateTime.parse(detectedData[key]!);
+          } catch (e) {
+            initialDate = DateTime.now();
+          }
+          DateTime? pickedDate = await showDatePicker(
+            context: context,
+            initialDate: initialDate,
+            firstDate: DateTime(2000),
+            lastDate: DateTime(2100),
+          );
+          if (pickedDate != null) {
+            // 선택된 날짜를 detectedData와 controller에 반영
+            setState(() {
+              String formattedDate = pickedDate.toString().split(' ')[0];
+              detectedData[key] = formattedDate;
+              controller.text = formattedDate;  // UI에 즉시 반영
+            });
+          }
+        },
+      ),
+    );
+  }
+
+
+
+  Widget _buildDropdownField(String label, String key, List<String> items, String? selectedValue) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: DropdownButtonFormField<String>(
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(),
+        ),
+        value: items.contains(selectedValue ?? detectedData[key])
+            ? selectedValue ?? detectedData[key]
+            : null,
+        items: items.map((item) {
+          return DropdownMenuItem(
+            value: item,
+            child: Text(item),
+          );
+        }).toList(),
+        onChanged: (value) => setState(() => detectedData[key] = value),
+      ),
+    );
+  }
+
+
 
   String _getLabelText(String key) {
     switch (key) {

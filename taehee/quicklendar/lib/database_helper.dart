@@ -213,6 +213,7 @@ class DatabaseHelper {
     final DateFormat dateFormatWithDay = DateFormat('yyyy년 MM월 dd일 (E)', 'ko_KR'); // 요일이 포함된 형식
     final DateFormat dateFormatWithoutDay = DateFormat('yyyy년 MM월 dd일'); // 요일이 없는 형식
     final DateFormat alternateDateFormat = DateFormat('yyyy.MM.dd'); // 다른 형식
+    final DateFormat standardDateFormat = DateFormat('yyyy-MM-dd'); // yyyy-MM-dd 형식 추가
 
     for (var event in events) {
       try {
@@ -234,10 +235,18 @@ class DatabaseHelper {
             contestStart = dateFormatWithoutDay.parse(event['contest_start_date']);
             contestEnd = dateFormatWithoutDay.parse(event['contest_end_date']);
           } catch (e) {
-            applicationStart = alternateDateFormat.parse(event['application_start_date']);
-            applicationEnd = alternateDateFormat.parse(event['application_end_date']);
-            contestStart = alternateDateFormat.parse(event['contest_start_date']);
-            contestEnd = alternateDateFormat.parse(event['contest_end_date']);
+            try {
+              applicationStart = alternateDateFormat.parse(event['application_start_date']);
+              applicationEnd = alternateDateFormat.parse(event['application_end_date']);
+              contestStart = alternateDateFormat.parse(event['contest_start_date']);
+              contestEnd = alternateDateFormat.parse(event['contest_end_date']);
+            } catch (e) {
+              // yyyy-MM-dd 형식을 마지막으로 시도
+              applicationStart = standardDateFormat.parse(event['application_start_date']);
+              applicationEnd = standardDateFormat.parse(event['application_end_date']);
+              contestStart = standardDateFormat.parse(event['contest_start_date']);
+              contestEnd = standardDateFormat.parse(event['contest_end_date']);
+            }
           }
         }
 

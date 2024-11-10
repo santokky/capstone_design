@@ -195,7 +195,32 @@ class _ContestDetailScreenState extends State<ContestDetailScreen> {
     );
   }
 
+  // 다양한 날짜 형식을 파싱할 수 있는 함수 정의
+  DateTime? parseDate(String dateStr) {
+    List<String> formats = [
+      'yyyy-MM-dd',
+      'yyyy.MM.dd',
+      'yyyy년 MM월 dd일',
+    ];
+
+    for (var format in formats) {
+      try {
+        return DateFormat(format).parseStrict(dateStr);
+      } catch (e) {
+        // 실패하면 다음 형식으로 넘어갑니다.
+      }
+    }
+    return null;
+  }
+
+// buildInfoRow 함수에서 날짜 형식을 일관되게 표시하도록 수정
   Widget buildInfoRow(IconData icon, String label, String value) {
+    // 다양한 형식의 날짜를 DateTime으로 변환
+    DateTime? date = parseDate(value);
+
+    // 변환된 날짜가 있으면 원하는 형식으로 표시, 없으면 원래 문자열 유지
+    String formattedDate = date != null ? DateFormat('yyyy-MM-dd').format(date) : value;
+
     return Row(
       children: [
         Icon(icon, color: Colors.blueAccent),
@@ -206,7 +231,7 @@ class _ContestDetailScreenState extends State<ContestDetailScreen> {
         ),
         Expanded(
           child: Text(
-            value,
+            formattedDate,
             style: const TextStyle(fontSize: 16),
             overflow: TextOverflow.ellipsis,
           ),
@@ -214,6 +239,7 @@ class _ContestDetailScreenState extends State<ContestDetailScreen> {
       ],
     );
   }
+
 
   Widget buildCommentSection() {
     return Card(

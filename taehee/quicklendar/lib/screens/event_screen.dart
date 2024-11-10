@@ -78,6 +78,7 @@ class _EventScreenState extends State<EventScreen> {
     final contestEndDateController = TextEditingController(text: event['contest_end_date'] ?? '');
     final applicationLinkController = TextEditingController(text: event['application_link'] ?? '');
     final contactController = TextEditingController(text: event['contact'] ?? '');
+
     // 기본값 설정 시 리스트 내에 있는지 확인 후 설정
     String? selectedCategory = event['category'];
     if (selectedCategory == null || !categories.contains(selectedCategory)) {
@@ -91,7 +92,7 @@ class _EventScreenState extends State<EventScreen> {
 
     bool isGeneralEvent = event.containsKey('start_time');
 
-    Future<void> _selectDateTime(TextEditingController controller) async {
+    Future<void> _selectDate(TextEditingController controller) async {
       DateTime? pickedDate = await showDatePicker(
         context: context,
         initialDate: DateTime.now(),
@@ -100,24 +101,10 @@ class _EventScreenState extends State<EventScreen> {
       );
 
       if (pickedDate != null) {
-        TimeOfDay? pickedTime = await showTimePicker(
-          context: context,
-          initialTime: TimeOfDay.now(),
-        );
-
-        if (pickedTime != null) {
-          DateTime dateTime = DateTime(
-            pickedDate.year,
-            pickedDate.month,
-            pickedDate.day,
-            pickedTime.hour,
-            pickedTime.minute,
-          );
-          String formattedDateTime = DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
-          setState(() {
-            controller.text = formattedDateTime;
-          });
-        }
+        String formattedDate = DateFormat('yyyy-MM-dd').format(pickedDate);
+        setState(() {
+          controller.text = formattedDate;
+        });
       }
     }
 
@@ -143,7 +130,7 @@ class _EventScreenState extends State<EventScreen> {
                 ),
                 if (isGeneralEvent) ...[
                   GestureDetector(
-                    onTap: () => _selectDateTime(startDateController),
+                    onTap: () => _selectDate(startDateController),
                     child: AbsorbPointer(
                       child: TextField(
                         controller: startDateController,
@@ -152,7 +139,7 @@ class _EventScreenState extends State<EventScreen> {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () => _selectDateTime(endDateController),
+                    onTap: () => _selectDate(endDateController),
                     child: AbsorbPointer(
                       child: TextField(
                         controller: endDateController,
@@ -166,7 +153,7 @@ class _EventScreenState extends State<EventScreen> {
                     decoration: const InputDecoration(labelText: '주최자'),
                   ),
                   GestureDetector(
-                    onTap: () => _selectDateTime(applicationStartDateController),
+                    onTap: () => _selectDate(applicationStartDateController),
                     child: AbsorbPointer(
                       child: TextField(
                         controller: applicationStartDateController,
@@ -175,7 +162,7 @@ class _EventScreenState extends State<EventScreen> {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () => _selectDateTime(applicationEndDateController),
+                    onTap: () => _selectDate(applicationEndDateController),
                     child: AbsorbPointer(
                       child: TextField(
                         controller: applicationEndDateController,
@@ -184,7 +171,7 @@ class _EventScreenState extends State<EventScreen> {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () => _selectDateTime(contestStartDateController),
+                    onTap: () => _selectDate(contestStartDateController),
                     child: AbsorbPointer(
                       child: TextField(
                         controller: contestStartDateController,
@@ -193,7 +180,7 @@ class _EventScreenState extends State<EventScreen> {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () => _selectDateTime(contestEndDateController),
+                    onTap: () => _selectDate(contestEndDateController),
                     child: AbsorbPointer(
                       child: TextField(
                         controller: contestEndDateController,
@@ -303,11 +290,6 @@ class _EventScreenState extends State<EventScreen> {
       },
     );
   }
-
-
-
-
-
 
   @override
   void dispose() {
