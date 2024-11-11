@@ -454,6 +454,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.1.0"
+  flutter_appauth:
+    dependency: "direct main"
+    description:
+      name: flutter_appauth
+      sha256: "6ab0e7fb2cb66db472a71c00e0f0d0888f186d308beaef4bba1a6113fa861096"
+      url: "https://pub.dev"
+    source: hosted
+    version: "8.0.0+1"
+  flutter_appauth_platform_interface:
+    dependency: transitive
+    description:
+      name: flutter_appauth_platform_interface
+      sha256: ccf5e1d8c40dd35b297290b33cc1896648b4b92a2ec3f62a436c62a8eef9a9db
+      url: "https://pub.dev"
+    source: hosted
+    version: "8.0.0"
   flutter_cache_manager:
     dependency: "direct main"
     description:

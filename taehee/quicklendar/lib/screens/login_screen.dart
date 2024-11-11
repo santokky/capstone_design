@@ -1,8 +1,16 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:flutter_appauth/flutter_appauth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/google_login.dart';
 import '../utils/http_login.dart'; // http_login.dart 파일을 import
 import '../main.dart'; // 홈 화면이 정의된 파일
+import '../utils/naver_login.dart';
 import 'signup_screen.dart'; // 회원가입 화면이 정의된 파일
+import '../utils/http_login.dart' as httpLogin;
+import '../utils/login_shared_function.dart' as sharedFunction;
+
 
 class LoginScreen extends StatefulWidget {
   final Function(bool) onLoginSuccess;
@@ -18,40 +26,153 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _rememberMe = false;
 
-  // 로그인 함수
+
+  //final FlutterAppAuth appAuth = FlutterAppAuth();
+
+  // // OAuth 클라이언트 정보
+  // // 구글
+  // static const String googleClientId = "103045365743-ovcqu07t65n0aakdn4oq5v7noivskl7f.apps.googleusercontent.com";
+  // static const String googleRedirectUri = "quicklendar://oauth2redirect";
+  // static const String googleDiscoveryUrl = "https://accounts.google.com/.well-known/openid-configuration";
+  // // 네이버
+  // static const String naverClientId = "rFe2vahJ2u3T896kiX1c";
+  // static const String naverClientSecret = "BvIF44t_QL";
+  // static const String naverRedirectUri = "quicklendar://oauth2redirect";
+  // static const String naverAuthorizationEndpoint = "https://nid.naver.com/oauth2.0/authorize";
+  // static const String naverTokenEndpoint = "https://nid.naver.com/oauth2.0/token";
+  // static const String naverUserInfoEndpoint = "https://openapi.naver.com/v1/nid/me";
+
+  // Future<void> _login() async {
+  //   String email = _emailController.text;
+  //   String password = _passwordController.text;
+  //
+  //   final response = await loginUser(email, password);
+  //
+  //   if (response.containsKey('token') && response['token'] != null) {
+  //     SharedPreferences prefs = await SharedPreferences.getInstance();
+  //     await prefs.setString('token', response['token'] ?? "");
+  //     await prefs.setString('userEmail', response['email'] ?? "");
+  //     await prefs.setString('userName', response['name'] ?? "");
+  //     await prefs.setBool('isLoggedIn', true);
+  //     widget.onLoginSuccess(true);
+  //
+  //     Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MyApp()));
+  //   } else {
+  //     _showErrorDialog(response['error'] ?? '알 수 없는 오류가 발생했습니다.');
+  //   }
+  // }
+
+
   Future<void> _login() async {
     String email = _emailController.text;
     String password = _passwordController.text;
 
-    // 로그인 요청을 보내고 응답을 받아옴
     final response = await loginUser(email, password);
 
     if (response.containsKey('token') && response['token'] != null) {
-      // 로그인 성공 시 토큰과 사용자 정보를 SharedPreferences에 저장
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString('token', response['token'] ?? "");
+      // httpLogin과 sharedFunction을 사용하여 충돌 해결
+      await httpLogin.saveToken(response['token']);
+      await sharedFunction.saveUserInfo(response);
 
-      // 사용자 정보를 SharedPreferences에 저장 (null을 빈 문자열로 처리)
-      String userEmail = response['email'] ?? "";
-      String userName = response['name'] ?? "";
-
-      await prefs.setString('userEmail', userEmail);
-      await prefs.setString('userName', userName);
-
-      await prefs.setBool('isLoggedIn', true);
       widget.onLoginSuccess(true);
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const MyApp()), // 로그인 성공 시 이동할 화면
-      );
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MyApp()));
     } else {
-      // 로그인 실패 시 오류 메시지 표시
       _showErrorDialog(response['error'] ?? '알 수 없는 오류가 발생했습니다.');
     }
   }
 
 
+  // Future<void> _googleLogin() async {
+  //   try {
+  //     final AuthorizationTokenResponse? result = await appAuth.authorizeAndExchangeCode(
+  //       AuthorizationTokenRequest(
+  //         googleClientId,
+  //         googleRedirectUri,
+  //         discoveryUrl: googleDiscoveryUrl,
+  //         scopes: ['openid', 'profile', 'email'],
+  //         promptValues: ['consent'], // 사용자 동의를 명시적으로 요청
+  //       ),
+  //     );
+  //
+  //     if (result != null && result.accessToken != null) {
+  //       await _loginWithBackend(result.accessToken!, 'google');
+  //     } else {
+  //       _showErrorDialog("Google 로그인 실패: 액세스 토큰을 받을 수 없습니다.");
+  //     }
+  //   } catch (e) {
+  //     _showErrorDialog("Google 로그인 오류: $e");
+  //   }
+  // }
+  //
+  // Future<void> _naverLogin() async {
+  //   try {
+  //     final AuthorizationTokenResponse? result = await appAuth.authorizeAndExchangeCode(
+  //       AuthorizationTokenRequest(
+  //         naverClientId,
+  //         naverRedirectUri,
+  //         clientSecret: naverClientSecret,
+  //         serviceConfiguration: AuthorizationServiceConfiguration(
+  //           authorizationEndpoint: naverAuthorizationEndpoint,
+  //           tokenEndpoint: naverTokenEndpoint,
+  //         ),
+  //         scopes: ['name', 'email'],
+  //       ),
+  //     );
+  //
+  //     if (result != null && result.accessToken != null) {
+  //       await _loginWithBackend(result.accessToken!, 'naver');
+  //     } else {
+  //       _showErrorDialog("Naver 로그인 실패: 액세스 토큰을 받을 수 없습니다.");
+  //     }
+  //   } catch (e) {
+  //     _showErrorDialog("Naver 로그인 오류: $e");
+  //   }
+  // }
+  //
+  // Future<void> _loginWithBackend(String accessToken, String provider) async {
+  //   try {
+  //     final response = await http.post(
+  //       Uri.parse('http://10.0.2.2:8080/login/oauth2/$provider'),
+  //       headers: {"Authorization": "Bearer $accessToken"},
+  //     );
+  //
+  //     if (response.statusCode == 200) {
+  //       final responseData = jsonDecode(response.body);
+  //       SharedPreferences prefs = await SharedPreferences.getInstance();
+  //       await prefs.setString('token', responseData['token'] ?? "");
+  //       await prefs.setString('userEmail', responseData['email'] ?? "");
+  //       await prefs.setString('userName', responseData['name'] ?? "");
+  //       widget.onLoginSuccess(true);
+  //       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MyApp()));
+  //     } else {
+  //       _showErrorDialog("서버 인증 실패: ${response.body}");
+  //     }
+  //   } catch (e) {
+  //     _showErrorDialog("백엔드 로그인 오류: $e");
+  //   }
+  // }
+
+  // Google 로그인 호출
+  Future<void> _handleGoogleLogin() async {
+    final response = await googleLogin();
+    if (response.containsKey('token')) {
+      widget.onLoginSuccess(true);
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MyApp()));
+    } else {
+      _showErrorDialog(response['error'] ?? "Google 로그인에 실패했습니다.");
+    }
+  }
+
+  // Naver 로그인 호출
+  Future<void> _handleNaverLogin() async {
+    final response = await naverLogin();
+    if (response.containsKey('token')) {
+      widget.onLoginSuccess(true);
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MyApp()));
+    } else {
+      _showErrorDialog(response['error'] ?? "Naver 로그인에 실패했습니다.");
+    }
+  }
 
   void _showErrorDialog(String message) {
     showDialog(
@@ -183,11 +304,18 @@ class _LoginScreenState extends State<LoginScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _buildSocialIcon('assets/img/google_logo.png', isDarkMode),
+                GestureDetector(
+                  onTap: _handleGoogleLogin,
+                  child: _buildSocialIcon('assets/img/google_logo.png', isDarkMode),
+                ),
                 const SizedBox(width: 15),
-                _buildSocialIcon('assets/img/naver_logo.png', isDarkMode),
+                GestureDetector(
+                  onTap: _handleNaverLogin,
+                  child: _buildSocialIcon('assets/img/naver_logo.png', isDarkMode),
+                ),
               ],
             ),
+
             const Spacer(flex: 2),
           ],
         ),

@@ -85,6 +85,7 @@ dependencies:
   flutter_launcher_icons: ^0.14.1
   klc: ^0.1.0
   webview_flutter: ^4.0.0
+  flutter_appauth: ^8.0.0+1
 
 
 
