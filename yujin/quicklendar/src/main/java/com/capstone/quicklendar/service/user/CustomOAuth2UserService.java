@@ -6,11 +6,9 @@ import com.capstone.quicklendar.domain.user.User;
 import com.capstone.quicklendar.domain.user.UserType;
 import com.capstone.quicklendar.repository.user.OAuthUserRepository;
 import com.capstone.quicklendar.repository.user.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
@@ -21,7 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
-
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -32,8 +29,27 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 
     private final UserRepository userRepository;
     private final OAuthUserRepository oauthUserRepository;
+    private final RestTemplate restTemplate;
 
-    public CustomOAuth2UserService(UserRepository userRepository, OAuthUserRepository oauthUserRepository) {
+    @Value("${spring.security.oauth2.client.registration.google.client-id}")
+    private String googleClientId;
+
+    @Value("${spring.security.oauth2.client.registration.google.client-secret}")
+    private String googleClientSecret;
+
+    @Value("${spring.security.oauth2.client.registration.google.redirect-uri}")
+    private String googleRedirectUri;
+
+    @Value("${spring.security.oauth2.client.registration.naver.client-id}")
+    private String naverClientId;
+
+    @Value("${spring.security.oauth2.client.registration.naver.client-secret}")
+    private String naverClientSecret;
+
+    @Autowired
+    public CustomOAuth2UserService(UserRepository userRepository,
+                                   OAuthUserRepository oauthUserRepository) {
+        this.restTemplate = new RestTemplate();
         this.userRepository = userRepository;
         this.oauthUserRepository = oauthUserRepository;
     }
@@ -43,7 +59,6 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         OAuth2UserService<OAuth2UserRequest, OAuth2User> delegate = new DefaultOAuth2UserService();
         OAuth2User oAuth2User = delegate.loadUser(userRequest);
 
-        // 제공자 정보 가져오기 (예: "naver", "google")
         final String provider = userRequest.getClientRegistration().getRegistrationId();
         final Map<String, Object> attributes = oAuth2User.getAttributes();
         final String providerId;
@@ -51,26 +66,21 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         final String name;
         final String phone;
 
-        // 네이버와 구글에 따른 사용자 정보 추출
         if ("naver".equals(provider)) {
-            // 네이버 OAuth 사용자 정보 가져오기
             Map<String, Object> response = (Map<String, Object>) attributes.get("response");
             providerId = (response != null) ? (String) response.get("id") : null;
             email = (response != null) ? (String) response.get("email") : null;
             name = (response != null) ? (String) response.get("name") : null;
             phone = (response != null) ? (String) response.get("mobile") : null;
         } else if ("google".equals(provider)) {
-            // 구글 OAuth 사용자 정보 가져오기
             providerId = (String) attributes.get("sub");
             email = (String) attributes.get("email");
             name = (String) attributes.get("name");
-            // 구글은 전화번호를 제공하지 않음
             phone = null;
         } else {
             throw new OAuth2AuthenticationException("지원하지 않는 OAuth 제공자입니다.");
         }
 
-        // 사용자 저장 또는 검색 로직
         User user = userRepository.findByEmail(email)
                 .orElseGet(() -> {
                     User newUser = new User();
@@ -78,17 +88,15 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
                     newUser.setName(name);
                     newUser.setPhone(phone);
                     newUser.setUserType(UserType.OAUTH);
-                    newUser.setProvider(provider); // OAuth 제공자 정보 저장
-                    newUser.setProvider_id(providerId); // OAuth 제공자의 사용자 ID 저장
+                    newUser.setProvider(provider);
+                    newUser.setProvider_id(providerId);
                     newUser.setEnabled(true);
                     return userRepository.save(newUser);
                 });
 
-        // Access Token과 만료 시간 가져오기
         String accessToken = userRequest.getAccessToken().getTokenValue();
         Instant expiresAt = userRequest.getAccessToken().getExpiresAt();
 
-        // OAuthToken 저장 또는 업데이트
         OAuthToken oauthToken = oauthUserRepository.findByProviderAndProviderId(provider, providerId)
                 .orElseGet(() -> {
                     OAuthToken newOAuthToken = new OAuthToken();
@@ -96,45 +104,40 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
                     newOAuthToken.setProvider(provider);
                     newOAuthToken.setProviderId(providerId);
                     newOAuthToken.setAccessToken(accessToken);
-                    newOAuthToken.setExpiresAt(expiresAt != null ? Timestamp.from(expiresAt) : null); // 만료시간 설정
+                    newOAuthToken.setExpiresAt(expiresAt != null ? Timestamp.from(expiresAt) : null);
                     newOAuthToken.setCreatedAt(LocalDateTime.now());
                     return oauthUserRepository.save(newOAuthToken);
                 });
 
-        // OAuth 사용자 정보 반환
         return new CustomOAuth2User(user, attributes);
     }
 
     public void unlinkOAuthUser(String providerId, String provider) {
-        // OAuth 사용자 정보 조회
+
         OAuthToken oauthToken = oauthUserRepository.findByProviderAndProviderId(provider, providerId)
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 providerId 또는 provider입니다."));
 
         String accessToken = oauthToken.getAccessToken();
         String refreshToken = oauthToken.getRefreshToken();
 
-        boolean revokeSuccess = false;  // 연동 해제 성공 여부
+        boolean revokeSuccess = false;
 
-        // 소셜 제공자에 따라 토큰 해제 로직 분기
         if ("naver".equals(provider)) {
-            revokeNaverToken(accessToken); // 네이버 연동 해제
+            revokeNaverToken(accessToken);
             revokeSuccess = true;
         } else if ("google".equals(provider)) {
-            revokeGoogleToken(accessToken, refreshToken); // 구글 연동 해제
+            revokeGoogleToken(accessToken, refreshToken);
             revokeSuccess = true;
         }
 
         if (revokeSuccess) {
-            // OAuth 사용자 정보를 데이터베이스에서 삭제
             oauthUserRepository.delete(oauthToken);
             userRepository.delete(oauthToken.getUser());
 
-            // 사용자 로그아웃 처리
             SecurityContextHolder.clearContext();
         } else {throw new RuntimeException("연동 해제 실패");
         }
     }
-
 
     // 구글 연동 해제 메서드
     private void revokeGoogleToken(String accessToken, String refreshToken) {
@@ -142,12 +145,10 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         String url = "https://oauth2.googleapis.com/revoke?token=" + accessToken;
 
         try {
-            // 액세스 토큰 해제 요청
             ResponseEntity<String> response = restTemplate.postForEntity(url, null, String.class);
             if (response.getStatusCode() == HttpStatus.OK) {
                 System.out.println("Google Access Token 연동 해제 성공");
 
-                // Refresh Token도 해제
                 if (refreshToken != null) {
                     String refreshUrl = "https://oauth2.googleapis.com/revoke?token=" + refreshToken;
                     ResponseEntity<String> refreshResponse = restTemplate.postForEntity(refreshUrl, null, String.class);
@@ -165,12 +166,6 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
             throw new RuntimeException("Google 연동 해제 중 오류 발생: " + e.getMessage());
         }
     }
-
-    @Value("${spring.security.oauth2.client.registration.naver.client-id}")
-    private String naverClientId;
-
-    @Value("${spring.security.oauth2.client.registration.naver.client-secret}")
-    private String naverClientSecret;
 
     // 네이버 연동 해제 메서드
     private void revokeNaverToken(String accessToken) {
@@ -201,4 +196,49 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         }
     }
 
+    public String getAccessToken(String providerType, String authorizationCode, String state) {
+        String tokenUrl;
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+
+        if ("google".equalsIgnoreCase(providerType)) {
+            // Google 토큰 URL 및 파라미터 설정
+            tokenUrl = "https://oauth2.googleapis.com/token";
+            params.add("grant_type", "authorization_code");
+            params.add("client_id", googleClientId);
+            params.add("client_secret", googleClientSecret);
+            params.add("code", authorizationCode);
+            params.add("redirect_uri", googleRedirectUri);
+        } else if ("naver".equalsIgnoreCase(providerType)) {
+            // Naver 토큰 URL 및 파라미터 설정
+            tokenUrl = "https://nid.naver.com/oauth2.0/token";
+            params.add("grant_type", "authorization_code");
+            params.add("client_id", naverClientId);
+            params.add("client_secret", naverClientSecret);
+            params.add("code", authorizationCode);
+            params.add("state", state);
+        } else {
+            throw new IllegalArgumentException("Unsupported provider: " + providerType);
+        }
+
+        // 공통 헤더 설정
+        HttpHeaders headers = new HttpHeaders();
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+
+        // 토큰 요청 및 응답 처리
+        ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
+        Map<String, Object> body = response.getBody();
+
+        // 액세스 토큰 반환
+        return (String) body.get("access_token");
+    }
+
+    public Map<String, Object> getNaverUserProfile(String accessToken) {
+        String profileUrl = "https://openapi.naver.com/v1/nid/me";
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", "Bearer " + accessToken);
+
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        ResponseEntity<Map> response = restTemplate.exchange(profileUrl, HttpMethod.GET, entity, Map.class);
+        return response.getBody();
+    }
 }

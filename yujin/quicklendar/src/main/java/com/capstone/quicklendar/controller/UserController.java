@@ -22,6 +22,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.security.core.GrantedAuthority;
 
@@ -98,11 +100,56 @@ public class UserController {
         }
     }
 
+    // 로그아웃 처리
     @PostMapping("/logout")
     public ResponseEntity<?> logoutUser() {
-        // JWT 토큰 삭제는 클라이언트에서 처리되므로 특별한 로직은 없음
         return ResponseEntity.ok("로그아웃 성공");
     }
+
+    // 네이버 로그인 처리 - 인증코드 받아오기
+    @GetMapping("/oauth2/login/naver")
+    public ResponseEntity<?> naverLoginCallback(@RequestParam("code") String code, @RequestParam("state") String state) {
+        try {
+            String accessToken = customOAuth2UserService.getAccessToken("naver", code, state);
+
+            Map<String, Object> userProfile = customOAuth2UserService.getNaverUserProfile(accessToken);
+            String email = (String) userProfile.get("email");
+
+            String token = jwtTokenProvider.createToken(email, "ROLE_USER");
+
+            return ResponseEntity.ok(new JwtResponse(token));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("OAuth2 로그인 실패: " + e.getMessage());
+        }
+    }
+
+    // 네이버 로그인 처리 - 로그인 검증
+    @PostMapping("/oauth2/login/naver")
+    public ResponseEntity<?> naverLogin(@RequestBody Map<String, String> body) {
+        try {
+            String authorizationCode = body.get("code");
+            String state = body.get("state");
+
+            String accessToken = customOAuth2UserService.getAccessToken("naver", authorizationCode, state);
+
+            Map<String, Object> userProfile = customOAuth2UserService.getNaverUserProfile(accessToken);
+            String email = (String) userProfile.get("email");
+            String name = (String) userProfile.get("name");
+
+            String jwtToken = jwtTokenProvider.createToken(email, "ROLE_USER");
+
+            Map<String, String> response = new HashMap<>();
+            response.put("token", jwtToken);
+            response.put("name", name);
+            response.put("email", email);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("OAuth2 로그인 실패: " + e.getMessage());
+        }
+    }
+
+
 
     // 회원 탈퇴 처리 POST 요청 (일반 사용자 + OAuth 사용자)
     @PostMapping("/delete-account")
@@ -143,7 +190,6 @@ public class UserController {
         return "redirect:/";  // 탈퇴 후 메인 페이지로 리다이렉트
     }
 
-
     // 회원 탈퇴 페이지 GET 요청
     @GetMapping("/delete-account")
     public String showDeleteAccountPage(Model model) {Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -158,50 +204,6 @@ public class UserController {
         }
 
         return "users/delete-account";  // 삭제 페이지로 이동
-    }
-
-    @GetMapping("/profile")
-    public String showProfilePage(Model model) {Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
-            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-            model.addAttribute("user", userDetails.getUser());  // user 객체를 모델에 추가
-        } else if (authentication != null && authentication.getPrincipal() instanceof CustomOAuth2User) {
-            CustomOAuth2User oAuth2User = (CustomOAuth2User) authentication.getPrincipal();
-            model.addAttribute("user", oAuth2User.getUser());  // OAuth2User의 user 객체를 모델에 추가
-        }
-        return "users/profile";  // 프로필 페이지 렌더링
-    }
-
-    // 프로필 업데이트 POST 요청
-    @PostMapping("/profile")
-    public String updateProfile(@RequestParam("name") String name,
-                                @RequestParam("phone") String phone,
-                                @RequestParam("password") String password,
-                                Model model) {Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
-            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-            User user = userDetails.getUser();
-
-            // 입력 받은 정보로 사용자 정보 업데이트
-            user.setName(name);
-            user.setPhone(phone);
-            if (!password.isEmpty()) {
-                user.setPassword(passwordEncoder.encode(password));
-            }
-
-            // 업데이트된 사용자 정보 저장
-            userService.updateProfile(user);
-
-            model.addAttribute("message", "프로필이 성공적으로 업데이트되었습니다.");
-        }
-
-        return "redirect:/profile";  // 업데이트 후 다시 프로필 페이지로 리다이렉트
-    }
-
-    // 로그아웃 페이지 GET 요청
-    @GetMapping("/logout-page")
-    public String showLogoutPage() {
-        return "users/logout";
     }
 
     @PostMapping("/unlink-oauth")

@@ -24,6 +24,9 @@ import org.springframework.security.oauth2.client.endpoint.DefaultAuthorizationC
 import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResponseClient;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequestEntityConverter;
+import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
+import org.springframework.security.oauth2.client.web.HttpSessionOAuth2AuthorizationRequestRepository;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.util.MultiValueMap;
@@ -36,7 +39,14 @@ public class SecurityConfig {
     private final OAuthUserRepository oauthUserRepository;
     private final JwtTokenProvider jwtTokenProvider;
 
-    public SecurityConfig(CustomUserDetailsService customUserDetailsService, UserRepository userRepository, OAuthUserRepository oauthUserRepository, JwtTokenProvider jwtTokenProvider) {
+    @Value("${spring.security.oauth2.client.registration.naver.client-secret}")
+    private String naverClientSecret;
+
+    @Value("${spring.security.oauth2.client.registration.google.client-secret}")
+    private String googleClientSecret;
+
+    public SecurityConfig(CustomUserDetailsService customUserDetailsService, UserRepository userRepository,
+                          OAuthUserRepository oauthUserRepository, JwtTokenProvider jwtTokenProvider) {
         this.customUserDetailsService = customUserDetailsService;
         this.userRepository = userRepository;
         this.oauthUserRepository = oauthUserRepository;
@@ -54,7 +64,11 @@ public class SecurityConfig {
                 )
                 .formLogin(AbstractHttpConfigurer::disable)
                 .logout(LogoutConfigurer::permitAll)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .oauth2Login(oauth -> oauth
+                        .authorizationEndpoint(endpoint -> endpoint.baseUri("/oauth2/authorization"))
+                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService()))
+                );
 
         return http.build();
     }
@@ -87,11 +101,10 @@ public class SecurityConfig {
         return new CustomOAuth2UserService(userRepository, oauthUserRepository);
     }
 
-    @Value("${spring.security.oauth2.client.registration.naver.client-secret}")
-    private String naverClientSecret;
-
-    @Value("${spring.security.oauth2.client.registration.google.client-secret}")
-    private String googleClientSecret;
+    @Bean
+    public AuthorizationRequestRepository<OAuth2AuthorizationRequest> authorizationRequestRepository() {
+        return new HttpSessionOAuth2AuthorizationRequestRepository();
+    }
 
     @Bean
     public OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> accessTokenResponseClient() {
@@ -106,9 +119,9 @@ public class SecurityConfig {
 
                 String provider = authorizationGrantRequest.getClientRegistration().getRegistrationId();
                 if ("naver".equals(provider)) {
-                    body.add("client_secret", naverClientSecret);  // 네이버 시크릿
+                    body.add("client_secret", naverClientSecret);
                 } else if ("google".equals(provider)) {
-                    body.add("client_secret", googleClientSecret);  // 구글 시크릿
+                    body.add("client_secret", googleClientSecret);
                 }
 
                 return new RequestEntity<>(body, originalRequest.getHeaders(), originalRequest.getMethod(), originalRequest.getUrl());
