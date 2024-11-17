@@ -1,6 +1,5 @@
 package com.capstone.quicklendar.controller;
 
-import com.capstone.quicklendar.domain.user.CustomOAuth2User;
 import com.capstone.quicklendar.domain.user.CustomUserDetails;
 import com.capstone.quicklendar.domain.user.User;
 import com.capstone.quicklendar.service.user.CustomOAuth2UserService;
@@ -19,7 +18,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -43,9 +41,6 @@ public class UserController {
         this.authenticationManager = authenticationManager;
         this.jwtTokenProvider = jwtTokenProvider;
     }
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
 
     // 회원가입 처리 - JSON
     @PostMapping("/signup")
@@ -123,24 +118,21 @@ public class UserController {
         }
     }
 
-    // 네이버 로그인 처리 - 로그인 검증
+    // 네이버 로그인 처리 - JSON 응답
     @PostMapping("/oauth2/login/naver")
     public ResponseEntity<?> naverLogin(@RequestBody Map<String, String> body) {
         try {
-            String authorizationCode = body.get("code");
+            String code = body.get("code");
             String state = body.get("state");
 
-            String accessToken = customOAuth2UserService.getAccessToken("naver", authorizationCode, state);
-
+            String accessToken = customOAuth2UserService.getAccessToken("naver", code, state);
             Map<String, Object> userProfile = customOAuth2UserService.getNaverUserProfile(accessToken);
-            String email = (String) userProfile.get("email");
-            String name = (String) userProfile.get("name");
 
-            String jwtToken = jwtTokenProvider.createToken(email, "ROLE_USER");
+            String email = (String) userProfile.get("email");
+            String jwt = jwtTokenProvider.createToken(email, "ROLE_USER");
 
             Map<String, String> response = new HashMap<>();
-            response.put("token", jwtToken);
-            response.put("name", name);
+            response.put("token", jwt);
             response.put("email", email);
 
             return ResponseEntity.ok(response);
@@ -149,121 +141,26 @@ public class UserController {
         }
     }
 
+    // 구글 로그인 처리
+    @PostMapping("/oauth2/login/google")
+    public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> body) {
+        try {
+            String code = body.get("code");
+            String accessToken = customOAuth2UserService.getAccessToken("google", code, null);
 
+            // 구글 사용자 프로필 가져오기
+            Map<String, Object> userProfile = customOAuth2UserService.getGoogleUserProfile(accessToken);
+            String email = (String) userProfile.get("email");
 
-    // 회원 탈퇴 처리 POST 요청 (일반 사용자 + OAuth 사용자)
-    @PostMapping("/delete-account")
-    public String deleteAccount(@RequestParam("userId") Long userId, Model model) {
+            String jwt = jwtTokenProvider.createToken(email, "ROLE_USER");
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            Map<String, String> response = new HashMap<>();
+            response.put("token", jwt);
+            response.put("email", email);
 
-        if (authentication != null) {
-            if (authentication.getPrincipal() instanceof CustomUserDetails) {
-                // 일반 사용자 탈퇴 처리
-                userService.deleteAccount(userId);
-                model.addAttribute("message", "회원 탈퇴가 완료되었습니다.");
-            } else if (authentication.getPrincipal() instanceof CustomOAuth2User) {
-                // OAuth 사용자 연동 해제 처리
-                CustomOAuth2User oauthUser = (CustomOAuth2User) authentication.getPrincipal();
-                User user = oauthUser.getUser();  // Users 테이블에서 가져온 User 엔티티 사용
-                String providerId = user.getProvider_id();  // Users 테이블에서 저장된 providerId 사용
-                String provider = user.getProvider();       // Users 테이블에서 저장된 provider 사용
-
-                if (providerId != null && provider != null) {
-                    try {
-                        customOAuth2UserService.unlinkOAuthUser(providerId, provider);  // 연동 해제
-                        model.addAttribute("message", "연동 해제가 완료되었습니다.");
-                    } catch (Exception e) {
-                        model.addAttribute("error", "연동 해제 중 오류가 발생했습니다.");
-                        return "users/delete-account";  // 연동 해제 실패 시 다시 탈퇴 페이지로
-                    }
-                } else {
-                    model.addAttribute("error", "OAuth 사용자 정보가 유효하지 않습니다.");
-                    return "users/delete-account";  // 오류가 있을 시 다시 탈퇴 페이지로
-                }
-            }
-        } else {
-            model.addAttribute("error", "인증 정보가 유효하지 않습니다.");
-            return "users/delete-account";  // 인증 실패 시 다시 탈퇴 페이지로
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("OAuth2 로그인 실패: " + e.getMessage());
         }
-
-        return "redirect:/";  // 탈퇴 후 메인 페이지로 리다이렉트
-    }
-
-    // 회원 탈퇴 페이지 GET 요청
-    @GetMapping("/delete-account")
-    public String showDeleteAccountPage(Model model) {Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
-            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-            model.addAttribute("userId", userDetails.getId());  // userId를 모델에 추가
-            model.addAttribute("user", userDetails.getUser());  // 일반 사용자 user 객체 모델에 추가
-        } else if (authentication != null && authentication.getPrincipal() instanceof CustomOAuth2User) {
-            CustomOAuth2User oauthUserDetails = (CustomOAuth2User) authentication.getPrincipal();
-            model.addAttribute("user", oauthUserDetails.getUser());  // OAuth 사용자의 user 객체 모델에 추가
-        }
-
-        return "users/delete-account";  // 삭제 페이지로 이동
-    }
-
-    @PostMapping("/unlink-oauth")
-    public String unlinkOAuthUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication != null && authentication.getPrincipal() instanceof CustomOAuth2User) {
-            CustomOAuth2User oauthUser = (CustomOAuth2User) authentication.getPrincipal();
-
-            // providerId와 provider 정보 추출
-            User user = oauthUser.getUser(); // 사용자 정보 가져오기
-            String providerId = user.getProvider_id(); // Users 테이블에서 가져온 providerId
-            String provider = user.getProvider(); // Users 테이블에서 가져온 provider
-
-            if (providerId != null && provider != null) {
-                customOAuth2UserService.unlinkOAuthUser(providerId, provider);
-            } else {
-                throw new IllegalArgumentException("OAuth 사용자 정보가 유효하지 않습니다.");
-            }
-        }
-
-        return "redirect:/";
-    }
-
-    @PostMapping("/unlink-google")
-    public String unlinkGoogleAccount(@RequestParam("userId") Long userId, Model model) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication != null && authentication.getPrincipal() instanceof CustomOAuth2User) {
-            CustomOAuth2User oauthUser = (CustomOAuth2User) authentication.getPrincipal();
-            String providerId = oauthUser.getProviderId();
-            String provider = "google";
-
-            customOAuth2UserService.unlinkOAuthUser(providerId, provider);
-        }
-
-        // 로그아웃 후 로그인 페이지로 리다이렉트
-        return "redirect:/login";
-    }
-
-    // 네이버 연동 해제 처리 POST 요청
-    @PostMapping("/unlink-naver")
-    public String unlinkNaverAccount(@RequestParam("userId") Long userId, Model model) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication != null && authentication.getPrincipal() instanceof CustomOAuth2User) {
-            CustomOAuth2User oauthUser = (CustomOAuth2User) authentication.getPrincipal();
-            String providerId = oauthUser.getProviderId();
-            String provider = "naver"; // 네이버로 provider 설정
-
-            try {
-                customOAuth2UserService.unlinkOAuthUser(providerId, provider);
-                model.addAttribute("message", "네이버 연동 해제가 완료되었습니다.");
-            } catch (Exception e) {
-                model.addAttribute("error", "네이버 연동 해제 중 오류가 발생했습니다.");
-                return "users/delete-account";  // 연동 해제 실패 시 다시 탈퇴 페이지로 이동
-            }
-        }
-
-        // 연동 해제 후 로그인 페이지로 리다이렉트
-        return "redirect:/login";
     }
 }
