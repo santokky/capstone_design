@@ -48,6 +48,7 @@ class Contest {
   Contest copyWith({
     int? id,
     String? imageUrl,
+    String? imageFile,
     String? title,
     String? organizer,
     String? description,
@@ -65,6 +66,7 @@ class Contest {
     return Contest(
       id: id ?? this.id,
       imageUrl: imageUrl ?? this.imageUrl,
+      imageFile: imageFile ?? this.imageFile ?? this.imageUrl, // 기본값 설정
       title: title ?? this.title,
       organizer: organizer ?? this.organizer,
       description: description ?? this.description,
@@ -127,33 +129,51 @@ class Contest {
     );
   }
 
-  // Contest 객체를 JSON으로 변환하는 메서드
+  // // Contest 객체를 JSON으로 변환하는 메서드
+  // Map<String, dynamic> toJson() {
+  //   return {
+  //     'id': id,
+  //     'imageUrl': imageUrl,
+  //     'title': title,
+  //     'organizer': organizer,
+  //     'description': description,
+  //     'location': location,
+  //     'applicationStart': applicationStart.toIso8601String(),
+  //     'applicationEnd': applicationEnd.toIso8601String(),
+  //     'startDate': startDate.toIso8601String(),
+  //     'endDate': endDate.toIso8601String(),
+  //     'applicationLink': applicationLink,
+  //     'contact': contact,
+  //     'views': views,
+  //     'category': category,
+  //     'activityType': activityType,
+  //   };
+  // }
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'imageUrl': imageUrl,
-      'title': title,
-      'organizer': organizer,
+      'name': title, // 서버에서 'name' 필드를 기대함
       'description': description,
-      'location': location,
-      'applicationStart': applicationStart.toIso8601String(),
-      'applicationEnd': applicationEnd.toIso8601String(),
       'startDate': startDate.toIso8601String(),
       'endDate': endDate.toIso8601String(),
-      'applicationLink': applicationLink,
-      'contact': contact,
-      'views': views,
+      'requestStartDate': applicationStart.toIso8601String(),
+      'requestEndDate': applicationEnd.toIso8601String(),
+      'requestPath': applicationLink,
+      'location': location,
+      'image': imageUrl,
+      'support': contact,
+      'host': organizer,
       'category': category,
-      'activityType': activityType,
+      'competitionType': activityType,
     };
   }
+
 
   // 데이터베이스로 저장하기 위해 Contest 객체를 Map으로 변환
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'imageUrl': imageUrl,
-      'imageFile': imageFile,
+      'imageFile': imageFile ?? '', // 여기서 imageFile 값이 null이 아니도록 처리
       'title': title,
       'organizer': organizer,
       'description': description,
@@ -175,7 +195,7 @@ class Contest {
     return Contest(
       id: map['id'],
       imageUrl: map['imageUrl'],
-      imageFile: map['imageFile'],
+      imageFile: map['imageFile'] != null && map['imageFile'].isNotEmpty ? map['imageFile'] : null,
       title: map['title'],
       organizer: map['organizer'],
       description: map['description'],

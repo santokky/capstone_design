@@ -59,6 +59,12 @@ class _ContestDetailScreenState extends State<ContestDetailScreen> {
   Widget build(BuildContext context) {
     bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
+    print('Using local image file: ${widget.contest.imageFile}');
+    print('Local file exists: ${widget.contest.imageFile != null && widget.contest.imageFile!.isNotEmpty && File(widget.contest.imageFile!).existsSync()}');
+    print('Detail Screen - imageFile: ${widget.contest.imageFile}');
+    print('Detail Screen - imageUrl: ${widget.contest.imageUrl}');
+
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: isDarkMode ? Colors.grey[850] : Colors.blueAccent,
@@ -80,17 +86,32 @@ class _ContestDetailScreenState extends State<ContestDetailScreen> {
               Center(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12.0),
-                  child: Image.network(
-                    widget.contest.imageUrl,
-                    height: 250,
+                  child: SizedBox(
+                    height: 400,
                     width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Image.asset('assets/img/sample_poster.png');
-                    },
+                    child: widget.contest.imageFile != null &&
+                        widget.contest.imageFile!.isNotEmpty &&
+                        File(widget.contest.imageFile!).existsSync()
+                        ? Image.file(
+                      File(widget.contest.imageFile!),
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Image.asset('assets/img/sample_poster.png');
+                      },
+                    )
+                        : (widget.contest.imageUrl.isNotEmpty
+                        ? Image.network(
+                      widget.contest.imageUrl,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Image.asset('assets/img/sample_poster.png');
+                      },
+                    )
+                        : Image.asset('assets/img/sample_poster.png')),
                   ),
                 ),
               ),
+
               const SizedBox(height: 16),
 
               // 공모전 정보 카드

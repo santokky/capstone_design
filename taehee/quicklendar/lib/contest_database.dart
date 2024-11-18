@@ -63,6 +63,8 @@ class ContestDatabase {
   Future<Contest?> create(Contest contest) async {
     final db = await instance.database;
 
+    print('Saving contest imageFile path: ${contest.imageFile}');
+
     // 제목으로 중복 검사
     final List<Map<String, dynamic>> existingContest = await db.query(
       'contests',

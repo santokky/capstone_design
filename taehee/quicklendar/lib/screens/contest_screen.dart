@@ -110,7 +110,12 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
     });
 
     setState(() {
-      homeFilteredContests = List.from(contestList); // 초기값
+      //homeFilteredContests = List.from(contestList); // 초기값
+      homeFilteredContests = contestList.map((c) {
+        return c.copyWith(
+          imageFile: c.imageFile ?? c.imageUrl, // imageFile 값이 없으면 imageUrl 사용
+        );
+      }).toList();
       contestFilteredContests =
           List.from(contestList.where((c) => c.activityType == "공모전"));
       activityFilteredContests =
@@ -316,10 +321,24 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
       builder: (context) {
         return AlertDialog(
           content: ContestForm(
-            onSubmit: (imageUrl, title, organizer, description, location,
-                appStart, appEnd, start, end, appLink, contact, category, activityType) async {
+            onSubmit: (
+                String imageUrl,
+                String title,
+                String organizer,
+                String description,
+                String location,
+                DateTime appStart,
+                DateTime appEnd,
+                DateTime start,
+                DateTime end,
+                String appLink,
+                String contact,
+                String category,
+                String activityType,
+                ) {
               final newContest = Contest(
                 imageUrl: imageUrl,
+                imageFile: imageUrl, // 로컬 이미지 경로로 설정
                 title: title,
                 organizer: organizer,
                 description: description,
@@ -333,11 +352,13 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                 category: category,
                 activityType: activityType,
               );
-              await ContestDatabase.instance.create(newContest);
-              await syncContestsToServer(); // 서버로 동기화
-              await loadContestsFromDatabase(); // 로컬 데이터베이스에서 다시 로드
-              setState(() {});
-              Navigator.of(context).pop();
+
+              ContestDatabase.instance.create(newContest).then((_) async {
+                await syncContestsToServer();
+                await loadContestsFromDatabase();
+                setState(() {});
+                Navigator.of(context).pop();
+              });
             },
           ),
         );
@@ -347,27 +368,36 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
 
 
   Widget buildContestCard(Contest contest) {
-    bool isDarkMode = Theme.of(context).brightness == Brightness.dark; // 다크 모드 여부 확인
+    bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    print('Title: ${contest.title}');
-    print('Image URL: ${contest.imageUrl}');
-    print('Image File Path: ${contest.imageFile}');
+    final imagePath = contest.imageFile?.isNotEmpty == true
+        ? contest.imageFile
+        : contest.imageUrl;
 
-    if (contest.imageFile != null) {
-      final fileExists = File(contest.imageFile!).existsSync();
-      print('File exists: $fileExists');
-    }
+    print('Image Path: $imagePath');
 
+    final fileExists = imagePath != null && imagePath.isNotEmpty
+        ? File(imagePath).existsSync()
+        : false;
+
+    print('File exists: $fileExists');
 
     return GestureDetector(
       onTap: () async {
         contest.views++;
-        await ContestDatabase.instance.updateViews(contest); // 조회수 업데이트
-        await loadContestsFromDatabase(); // 데이터베이스에서 공모전 목록을 다시 로드
+        await ContestDatabase.instance.updateViews(contest);
+        await loadContestsFromDatabase();
+
+        // `imageFile` 값을 포함한 `Contest` 객체 복사
+        final updatedContest = contest.copyWith(imageFile: contest.imageFile);
+
+        // 디버깅용 로그 출력
+        print('Navigating to detail with imageFile: ${updatedContest.imageFile}');
+
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ContestDetailScreen(contest: contest),
+            builder: (context) => ContestDetailScreen(contest: updatedContest),
           ),
         );
       },
@@ -390,37 +420,22 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                   child: SizedBox(
                     height: 170,
                     width: double.infinity,
-                    child: contest.imageUrl.isNotEmpty
-                        ? Image.network(
-                      contest.imageUrl,
+                    child: fileExists
+                        ? Image.file(
+                      File(imagePath!),
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Image.asset('assets/img/sample_poster.png');
                       },
                     )
-                        : contest.imageFile != null
-                        ? Builder(
-                      builder: (context) {
-                        print('Image file path: ${contest.imageFile}');
-                        if (contest.imageFile != null) {
-                          final fileExists = File(contest.imageFile!).existsSync();
-                          print('File exists: $fileExists');
-                        }
-                        return Image.file(
-                          File(contest.imageFile!),
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Image.asset('assets/img/sample_poster.png');
-                          },
-                        );
-                      },
-                    )
-                        : Image.asset(
-                      'assets/img/sample_poster.png',
+                        : Image.network(
+                      contest.imageUrl,
                       fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Image.asset('assets/img/sample_poster.png');
+                      },
                     ),
                   ),
-
                 ),
                 Positioned(
                   top: 8,
@@ -481,6 +496,7 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
       ),
     );
   }
+
 
 
 
@@ -702,7 +718,7 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                                     autoPlay: true,
                                     enlargeCenterPage: true,
                                     aspectRatio: 16 / 9,
-                                    viewportFraction: 0.8,
+                                    viewportFraction: 1.0,
                                     onPageChanged: (index, reason) {
                                       setState(() {
                                         currentIndex = index;
@@ -720,7 +736,7 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                                                 10.0),
                                             child: Image.asset(
                                               url,
-                                              fit: BoxFit.cover,
+                                              fit: BoxFit.contain,
                                             ),
                                           ),
                                         );
