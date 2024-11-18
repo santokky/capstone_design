@@ -66,7 +66,7 @@ public class CompetitionController {
     }
 
     // 공모전 등록
-    @PostMapping
+    @PostMapping("/register")
     public ResponseEntity<CompetitionDTO> addCompetition(@ModelAttribute CompetitionFormDTO competitionFormDTO) {
         try {
             String imagePath = null;

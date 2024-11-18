@@ -34,7 +34,8 @@ public class SecurityConfig {
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class)
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/", "/index", "/signup", "/login", "/join", "/resources/**", "/oauth2/**").permitAll()
+                        .requestMatchers("/", "/index", "/signup", "/login", "/join", "/resources/**", "/oauth2/**",
+                                "/competitions").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(AbstractHttpConfigurer::disable)
