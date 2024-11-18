@@ -60,8 +60,8 @@ public class CompetitionController {
         return ResponseEntity.ok(competitions);
     }
 
-    // 공모전 상세 조회
-    @GetMapping("/{id}")
+    // 공모전 상세 정보 조회
+    @GetMapping("/details/{id}")
     public ResponseEntity<CompetitionDTO> getCompetition(@PathVariable Long id) {
         Competition competition = competitionService.getCompetitionById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid competition ID: " + id));
@@ -70,7 +70,7 @@ public class CompetitionController {
     }
 
     // 공모전 등록
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(path = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<CompetitionDTO> addCompetition(@ModelAttribute CompetitionFormDTO competitionFormDTO) {
         try {
             String imagePath = null;
@@ -91,7 +91,7 @@ public class CompetitionController {
     }
 
     // 공모전 삭제
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/delete/{id}")
     public ResponseEntity<Void> deleteCompetition(@PathVariable Long id) {
         competitionService.deleteCompetition(id);
         return ResponseEntity.noContent().build();
@@ -119,7 +119,7 @@ public class CompetitionController {
     }
 
     // 공모전 수정
-    @PutMapping("/{id}")
+    @PutMapping("/update/{id}")
     public ResponseEntity<CompetitionDTO> updateCompetition(
             @PathVariable Long id,
             @ModelAttribute CompetitionFormDTO competitionFormDTO) {

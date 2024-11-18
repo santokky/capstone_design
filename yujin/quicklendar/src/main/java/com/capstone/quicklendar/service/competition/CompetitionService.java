@@ -24,10 +24,10 @@ public class CompetitionService {
     private final CompetitionRepository competitionRepository;
     private final ImageHandler imageHandler;
 
-    @Value("${image.base.url}") // 예: "http://localhost:8080/images/"
+    @Value("${image.base.url}")
     private String imageBaseUrl;
 
-    @Value("${image.upload.dir}") // 예: "/path/to/images/"
+    @Value("${image.upload.dir}")
     private String uploadDir;
 
     @Autowired
@@ -36,11 +36,17 @@ public class CompetitionService {
         this.imageHandler = imageHandler;
     }
 
+    // 공모전 전체 조회
+    public List<CompetitionDTO> getAllCompetitions() {
+        return competitionRepository.findAll().stream()
+                .map(competition -> new CompetitionDTO(competition, imageBaseUrl))
+                .collect(Collectors.toList());
+    }
+
+    // 공모전 등록
     public CompetitionDTO addCompetition(CompetitionFormDTO competitionFormDTO) throws IOException {
-        // 이미지 저장
         String savedImagePath = imageHandler.saveImage(competitionFormDTO.getImage(), uploadDir);
 
-        // Competition 엔티티 생성 및 저장
         Competition competition = new Competition();
         competition.setName(competitionFormDTO.getName());
         competition.setDescription(competitionFormDTO.getDescription());
@@ -54,18 +60,35 @@ public class CompetitionService {
         competition.setHost(competitionFormDTO.getHost());
         competition.setCategory(competitionFormDTO.getCategory());
         competition.setCompetitionType(competitionFormDTO.getCompetitionType());
-        competition.setImage(savedImagePath); // 저장된 이미지 경로 설정
+        competition.setImage(savedImagePath);
 
         competitionRepository.save(competition);
-
         return new CompetitionDTO(competition, imageBaseUrl);
     }
 
-    // 공모전 전체 조회
-    public List<CompetitionDTO> getAllCompetitions() {
-        return competitionRepository.findAll().stream()
-                .map(competition -> new CompetitionDTO(competition, imageBaseUrl))
-                .collect(Collectors.toList());
+    // 공모전 수정
+    public Competition updateCompetition(Long id, CompetitionFormDTO competitionFormDTO, String imagePath) {
+        Competition existingCompetition = competitionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid competition ID: " + id));
+
+        existingCompetition.setName(competitionFormDTO.getName());
+        existingCompetition.setDescription(competitionFormDTO.getDescription());
+        existingCompetition.setStartDate(competitionFormDTO.getStartDate());
+        existingCompetition.setEndDate(competitionFormDTO.getEndDate());
+        existingCompetition.setRequestStartDate(competitionFormDTO.getRequestStartDate());
+        existingCompetition.setRequestEndDate(competitionFormDTO.getRequestEndDate());
+        existingCompetition.setRequestPath(competitionFormDTO.getRequestPath());
+        existingCompetition.setLocation(competitionFormDTO.getLocation());
+        existingCompetition.setSupport(competitionFormDTO.getSupport());
+        existingCompetition.setHost(competitionFormDTO.getHost());
+        existingCompetition.setCategory(competitionFormDTO.getCategory());
+        existingCompetition.setCompetitionType(competitionFormDTO.getCompetitionType());
+
+        if (imagePath != null) {
+            existingCompetition.setImage(imagePath);
+        }
+
+        return competitionRepository.save(existingCompetition);
     }
 
     // 공모전 상세 정보 가져오기
@@ -155,11 +178,6 @@ public class CompetitionService {
         competitionRepository.deleteById(id);
     }
 
-    // 공모전 업데이트
-    public void updateCompetition(Competition competition) {
-        competitionRepository.save(competition);
-    }
-
     // 좋아요 수로 내림차순 정렬된 공모전 목록 조회
     public List<Competition> getCompetitionsSortedByLikes() {
         return competitionRepository.findAll(Sort.by(Sort.Direction.DESC, "likes"));
@@ -170,31 +188,5 @@ public class CompetitionService {
         return competitionRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
     }
 
-    public Competition updateCompetition(Long id, CompetitionFormDTO competitionFormDTO, String imagePath) {
-        // 기존 공모전 조회
-        Competition existingCompetition = competitionRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid competition ID: " + id));
 
-        // CompetitionFormDTO의 필드 값으로 기존 Competition을 업데이트
-        existingCompetition.setName(competitionFormDTO.getName());
-        existingCompetition.setDescription(competitionFormDTO.getDescription());
-        existingCompetition.setStartDate(competitionFormDTO.getStartDate());
-        existingCompetition.setEndDate(competitionFormDTO.getEndDate());
-        existingCompetition.setRequestStartDate(competitionFormDTO.getRequestStartDate());
-        existingCompetition.setRequestEndDate(competitionFormDTO.getRequestEndDate());
-        existingCompetition.setRequestPath(competitionFormDTO.getRequestPath());
-        existingCompetition.setLocation(competitionFormDTO.getLocation());
-        existingCompetition.setSupport(competitionFormDTO.getSupport());
-        existingCompetition.setHost(competitionFormDTO.getHost());
-        existingCompetition.setCategory(competitionFormDTO.getCategory());
-        existingCompetition.setCompetitionType(competitionFormDTO.getCompetitionType());
-
-        // 이미지 경로가 있을 경우 업데이트
-        if (imagePath != null) {
-            existingCompetition.setImage(imagePath);
-        }
-
-        // 업데이트된 Competition 저장
-        return competitionRepository.save(existingCompetition);
-    }
 }
