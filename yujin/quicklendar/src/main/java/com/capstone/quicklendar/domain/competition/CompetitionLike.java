@@ -2,7 +2,6 @@ package com.capstone.quicklendar.domain.competition;
 
 import com.capstone.quicklendar.domain.user.User;
 import jakarta.persistence.*;
-import lombok.NoArgsConstructor;
 
 import java.util.Date;
 
