@@ -12,6 +12,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,6 +30,9 @@ public class CompetitionController {
 
     @Value("${image.upload.dir}")
     private String uploadDir;
+
+    @Value("${image.base.url}")
+    private String imageBaseUrl; // 클라이언트가 접근 가능한 이미지 URL의 기본 경로
 
     @Autowired
     public CompetitionController(CompetitionService competitionService,
@@ -50,7 +54,7 @@ public class CompetitionController {
 
         List<CompetitionDTO> competitions = competitionService.filterCompetitions(category, competitionType, host)
                 .stream()
-                .map(CompetitionDTO::new)
+                .map(competition -> new CompetitionDTO(competition, imageBaseUrl))
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(competitions);
@@ -62,12 +66,12 @@ public class CompetitionController {
         Competition competition = competitionService.getCompetitionById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid competition ID: " + id));
 
-        return ResponseEntity.ok(new CompetitionDTO(competition));
+        return ResponseEntity.ok(new CompetitionDTO(competition, imageBaseUrl));
     }
 
     // 공모전 등록
-    @PostMapping("/register")
-    public ResponseEntity<CompetitionDTO> addCompetition(@RequestBody CompetitionFormDTO competitionFormDTO) {
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<CompetitionDTO> addCompetition(@ModelAttribute CompetitionFormDTO competitionFormDTO) {
         try {
             String imagePath = null;
             if (competitionFormDTO.getImage() != null && !competitionFormDTO.getImage().isEmpty()) {
@@ -80,7 +84,7 @@ public class CompetitionController {
 
             Competition savedCompetition = competitionService.addCompetition(competition);
 
-            return ResponseEntity.status(HttpStatus.CREATED).body(new CompetitionDTO(savedCompetition));
+            return ResponseEntity.status(HttpStatus.CREATED).body(new CompetitionDTO(savedCompetition, imageBaseUrl));
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -112,5 +116,23 @@ public class CompetitionController {
     public ResponseEntity<Boolean> isLiked(@PathVariable Long id, @RequestParam String userEmail) {
         boolean liked = competitionLikeService.isLiked(id, userEmail);
         return ResponseEntity.ok(liked);
+    }
+
+    // 공모전 수정
+    @PutMapping("/{id}")
+    public ResponseEntity<CompetitionDTO> updateCompetition(
+            @PathVariable Long id,
+            @ModelAttribute CompetitionFormDTO competitionFormDTO) {
+        try {
+            String imagePath = null;
+            if (competitionFormDTO.getImage() != null && !competitionFormDTO.getImage().isEmpty()) {
+                imagePath = imageHandler.saveImage(competitionFormDTO.getImage(), uploadDir);
+            }
+
+            Competition updatedCompetition = competitionService.updateCompetition(id, competitionFormDTO, imagePath);
+            return ResponseEntity.ok(new CompetitionDTO(updatedCompetition, imageBaseUrl));
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }

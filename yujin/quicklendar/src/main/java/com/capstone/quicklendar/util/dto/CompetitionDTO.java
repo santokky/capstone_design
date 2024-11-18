@@ -16,14 +16,14 @@ public class CompetitionDTO {
     private LocalDate requestEndDate;
     private String requestPath;
     private String location;
-    private String image;
+    private String imageUrl;
     private String support;
     private String host;
     private Category category;
     private CompetitionType competitionType;
-    private int likeCount;
+    private int likeCount; // 좋아요 수
 
-    public CompetitionDTO(Competition competition) {
+    public CompetitionDTO(Competition competition, String imageBaseUrl) {
         this.id = competition.getId();
         this.name = competition.getName();
         this.description = competition.getDescription();
@@ -33,7 +33,7 @@ public class CompetitionDTO {
         this.requestEndDate = competition.getRequestEndDate();
         this.requestPath = competition.getRequestPath();
         this.location = competition.getLocation();
-        this.image = competition.getImage();
+        this.imageUrl = imageBaseUrl + competition.getImage(); // 이미지 경로를 URL로 변환
         this.support = competition.getSupport();
         this.host = competition.getHost();
         this.category = competition.getCategory();
@@ -115,12 +115,12 @@ public class CompetitionDTO {
         this.location = location;
     }
 
-    public String getImage() {
-        return image;
+    public String getImageUrl() {
+        return imageUrl;
     }
 
-    public void setImage(String image) {
-        this.image = image;
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public String getSupport() {
