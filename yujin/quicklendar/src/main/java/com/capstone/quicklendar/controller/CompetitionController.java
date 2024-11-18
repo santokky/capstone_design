@@ -40,7 +40,7 @@ public class CompetitionController {
     }
 
     // 공모전 목록 조회
-    @GetMapping
+    @GetMapping(produces = "application/json; charset=UTF-8")
     public ResponseEntity<List<CompetitionDTO>> getAllCompetitions(
             @RequestParam(value = "category", required = false) String categoryStr,
             @RequestParam(value = "competitionType", required = false) String competitionTypeStr,
