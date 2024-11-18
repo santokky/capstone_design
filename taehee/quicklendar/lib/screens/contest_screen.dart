@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:carousel_slider/carousel_slider.dart';
 import '../models/contest.dart';
+import '../utils/http_contest.dart';
 import '../widgets/contest_form.dart';
 import '../contest_database.dart';
 import '../database_helper.dart'; // DatabaseHelper 가져오기
@@ -52,6 +53,9 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+
+    // 앱 시작 시 서버 동기화 및 데이터 로드
+    syncAndLoadData();
 
     // TabBar 상태를 추적하는 리스너 추가
     _tabController.addListener(() {
@@ -244,6 +248,68 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
     });
   }
 
+  Future<void> syncAndLoadData() async {
+    await syncContestsFromServer(); // 서버에서 데이터 동기화
+    await loadContestsFromDatabase(); // 로컬 데이터베이스에서 공모전 정보 로드
+    setState(() {}); // UI 업데이트
+  }
+
+
+  Future<void> syncContestsFromServer() async {
+    try {
+      // 서버에서 공모전 목록 가져오기
+      List<Map<String, dynamic>> serverContests = await fetchContests();
+
+      for (var contestData in serverContests) {
+        Contest contest = Contest.fromJson(contestData);
+
+        // 공모전의 id가 있는지 확인
+        if (contest.id != null) {
+          // 로컬 데이터베이스에 이미 있는 공모전인지 확인
+          Contest? existingContest = await ContestDatabase.instance.readContestById(contest.id!);
+
+          if (existingContest == null) {
+            // 없는 경우 새로 추가
+            await ContestDatabase.instance.create(contest);
+          } else {
+            // 이미 있는 경우 업데이트
+            await ContestDatabase.instance.update(contest);
+          }
+        } else {
+          // id가 없는 경우 생성
+          await ContestDatabase.instance.create(contest);
+        }
+      }
+
+      print("서버에서 데이터 동기화 완료");
+    } catch (e) {
+      print("syncContestsFromServer 에러: $e");
+    }
+  }
+
+
+  Future<void> syncContestsToServer() async {
+    try {
+      // 로컬 데이터베이스에서 모든 공모전 가져오기
+      List<Contest> localContests = await ContestDatabase.instance.readAllContests();
+
+      for (var contest in localContests) {
+        if (contest.id == null) {
+          // 로컬에서만 있는 공모전이면 서버에 생성
+          await createContest(contest.toJson());
+        } else {
+          // 서버에도 있는 경우 업데이트
+          //await updateContest(contest.id!, contest.toJson());
+        }
+      }
+
+      print("로컬 데이터 서버로 업로드 완료");
+    } catch (e) {
+      print("syncContestsToServer 에러: $e");
+    }
+  }
+
+
   Future<void> showAddContestForm() async {
     await showDialog(
       context: context,
@@ -251,8 +317,7 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
         return AlertDialog(
           content: ContestForm(
             onSubmit: (imageUrl, title, organizer, description, location,
-                appStart, appEnd, start, end, appLink, contact, category,
-                activityType) async {
+                appStart, appEnd, start, end, appLink, contact, category, activityType) async {
               final newContest = Contest(
                 imageUrl: imageUrl,
                 title: title,
@@ -269,7 +334,9 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                 activityType: activityType,
               );
               await ContestDatabase.instance.create(newContest);
-              await loadContestsFromDatabase(); // 데이터베이스에서 공모전 목록을 다시 로드
+              await syncContestsToServer(); // 서버로 동기화
+              await loadContestsFromDatabase(); // 로컬 데이터베이스에서 다시 로드
+              setState(() {});
               Navigator.of(context).pop();
             },
           ),
@@ -278,10 +345,19 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
     );
   }
 
+
   Widget buildContestCard(Contest contest) {
-    bool isDarkMode = Theme
-        .of(context)
-        .brightness == Brightness.dark; // 다크 모드 여부 확인
+    bool isDarkMode = Theme.of(context).brightness == Brightness.dark; // 다크 모드 여부 확인
+
+    print('Title: ${contest.title}');
+    print('Image URL: ${contest.imageUrl}');
+    print('Image File Path: ${contest.imageFile}');
+
+    if (contest.imageFile != null) {
+      final fileExists = File(contest.imageFile!).existsSync();
+      print('File exists: $fileExists');
+    }
+
 
     return GestureDetector(
       onTap: () async {
@@ -301,7 +377,6 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
         ),
         elevation: 4,
         color: isDarkMode ? Colors.grey[850] : Colors.white,
-        // 다크 모드에서는 grey[850], 라이트 모드에서는 흰색
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -312,19 +387,46 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                     topLeft: Radius.circular(10),
                     topRight: Radius.circular(10),
                   ),
-                  child: Image.file(
-                    File(contest.imageUrl!), // 이미지 경로에서 파일을 읽어옴
-                    height: 150,
+                  child: SizedBox(
+                    height: 170,
                     width: double.infinity,
-                    fit: BoxFit.cover,
+                    child: contest.imageUrl.isNotEmpty
+                        ? Image.network(
+                      contest.imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Image.asset('assets/img/sample_poster.png');
+                      },
+                    )
+                        : contest.imageFile != null
+                        ? Builder(
+                      builder: (context) {
+                        print('Image file path: ${contest.imageFile}');
+                        if (contest.imageFile != null) {
+                          final fileExists = File(contest.imageFile!).existsSync();
+                          print('File exists: $fileExists');
+                        }
+                        return Image.file(
+                          File(contest.imageFile!),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Image.asset('assets/img/sample_poster.png');
+                          },
+                        );
+                      },
+                    )
+                        : Image.asset(
+                      'assets/img/sample_poster.png',
+                      fit: BoxFit.cover,
+                    ),
                   ),
+
                 ),
                 Positioned(
                   top: 8,
                   left: 8,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: Colors.pinkAccent,
                       borderRadius: BorderRadius.circular(4),
@@ -348,8 +450,7 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: isDarkMode ? Colors.white : Colors
-                          .black, // 다크 모드에서는 흰색, 라이트 모드에서는 검정색
+                      color: isDarkMode ? Colors.white : Colors.black,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -358,20 +459,17 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: isDarkMode ? Colors.grey[400] : Colors
-                          .grey[600], // 다크 모드에서는 grey[400], 라이트 모드에서는 grey[600]
+                      color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                     ),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.visibility, size: 16,
-                          color: isDarkMode ? Colors.grey[400] : Colors.grey),
+                      Icon(Icons.visibility, size: 16, color: isDarkMode ? Colors.grey[400] : Colors.grey),
                       const SizedBox(width: 4),
                       Text(
                         '${contest.views} 조회수',
-                        style: TextStyle(fontSize: 12,
-                            color: isDarkMode ? Colors.grey[400] : Colors.grey),
+                        style: TextStyle(fontSize: 12, color: isDarkMode ? Colors.grey[400] : Colors.grey),
                       ),
                     ],
                   ),
@@ -383,6 +481,7 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
       ),
     );
   }
+
 
 
   Widget buildFilterRow() {

@@ -20,10 +20,16 @@ class ContestDatabase {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2, // 버전을 2로 업데이트
       onCreate: _createDB,
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE contests ADD COLUMN imageFile TEXT');
+        }
+      },
     );
   }
+
 
   Future _createDB(Database db, int version) async {
     const idType = 'INTEGER PRIMARY KEY AUTOINCREMENT';
@@ -35,6 +41,7 @@ class ContestDatabase {
     CREATE TABLE contests (
       id $idType,
       imageUrl $textType,
+      imageFile $textType,
       title $textType,
       organizer $textType,
       description $textType,
@@ -130,6 +137,25 @@ class ContestDatabase {
     );
   }
 
+  // 공모전 업데이트 함수 추가
+  Future<int> update(Contest contest) async {
+    final db = await instance.database;
+
+    // 업데이트하려는 공모전의 id가 null인 경우 예외 처리
+    if (contest.id == null) {
+      throw Exception("Update failed: Contest id is null");
+    }
+
+    // 업데이트 수행
+    return await db.update(
+      'contests',
+      contest.toMap(),
+      where: 'id = ?',
+      whereArgs: [contest.id],
+    );
+  }
+
+
   // 전체 공모전 읽기
   Future<List<Contest>> readAllContests() async {
     final db = await instance.database;
@@ -137,6 +163,17 @@ class ContestDatabase {
     final result = await db.query('contests', orderBy: orderBy);
     return result.map((json) => Contest.fromMap(json)).toList();
   }
+
+  Future<Contest?> readContestById(int id) async {
+    final db = await instance.database;
+    final maps = await db.query('contests', where: 'id = ?', whereArgs: [id]);
+
+    if (maps.isNotEmpty) {
+      return Contest.fromMap(maps.first);
+    }
+    return null;
+  }
+
 
   Future close() async {
     final db = await instance.database;

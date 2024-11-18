@@ -80,11 +80,14 @@ class _ContestDetailScreenState extends State<ContestDetailScreen> {
               Center(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12.0),
-                  child: Image.file(
-                    File(widget.contest.imageUrl),
+                  child: Image.network(
+                    widget.contest.imageUrl,
                     height: 250,
                     width: double.infinity,
                     fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Image.asset('assets/img/sample_poster.png');
+                    },
                   ),
                 ),
               ),

@@ -86,6 +86,7 @@ dependencies:
   klc: ^0.1.0
   webview_flutter: ^4.0.0
   flutter_appauth: ^8.0.0+1
+  connectivity_plus: ^6.1.0
 
 
 
@@ -143,6 +144,8 @@ flutter:
     - assets/img/appstore.png
     - assets/img/playstore.png
     - assets/img/ocr_image.png
+    - assets/img/ssafy.png
+    - assets/img/435687.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
