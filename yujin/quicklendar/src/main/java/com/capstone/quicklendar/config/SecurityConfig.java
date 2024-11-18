@@ -2,6 +2,7 @@ package com.capstone.quicklendar.config;
 
 import com.capstone.quicklendar.domain.user.CustomOAuth2User;
 import com.capstone.quicklendar.service.user.CustomOAuth2UserService;
+import com.capstone.quicklendar.service.user.CustomUserDetailsService;
 import com.capstone.quicklendar.util.jwt.JwtAuthenticationFilter;
 import com.capstone.quicklendar.util.jwt.JwtTokenProvider;
 import org.springframework.context.annotation.Bean;
@@ -29,11 +30,11 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        JwtAuthenticationFilter jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtTokenProvider);
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, CustomUserDetailsService customUserDetailsService) throws Exception {
+        JwtAuthenticationFilter jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtTokenProvider, customUserDetailsService);
 
         http
-                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, customUserDetailsService), UsernamePasswordAuthenticationFilter.class)
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/", "/index", "/signup", "/login", "/join", "/resources/**", "/oauth2/**",
