@@ -67,7 +67,7 @@ public class CompetitionController {
 
     // 공모전 등록
     @PostMapping("/register")
-    public ResponseEntity<CompetitionDTO> addCompetition(@ModelAttribute CompetitionFormDTO competitionFormDTO) {
+    public ResponseEntity<CompetitionDTO> addCompetition(@RequestBody CompetitionFormDTO competitionFormDTO) {
         try {
             String imagePath = null;
             if (competitionFormDTO.getImage() != null && !competitionFormDTO.getImage().isEmpty()) {
