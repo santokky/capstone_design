@@ -129,26 +129,6 @@ class Contest {
     );
   }
 
-  // // Contest 객체를 JSON으로 변환하는 메서드
-  // Map<String, dynamic> toJson() {
-  //   return {
-  //     'id': id,
-  //     'imageUrl': imageUrl,
-  //     'title': title,
-  //     'organizer': organizer,
-  //     'description': description,
-  //     'location': location,
-  //     'applicationStart': applicationStart.toIso8601String(),
-  //     'applicationEnd': applicationEnd.toIso8601String(),
-  //     'startDate': startDate.toIso8601String(),
-  //     'endDate': endDate.toIso8601String(),
-  //     'applicationLink': applicationLink,
-  //     'contact': contact,
-  //     'views': views,
-  //     'category': category,
-  //     'activityType': activityType,
-  //   };
-  // }
   Map<String, dynamic> toJson() {
     return {
       'name': title, // 서버에서 'name' 필드를 기대함
@@ -166,7 +146,6 @@ class Contest {
       'competitionType': activityType,
     };
   }
-
 
   // 데이터베이스로 저장하기 위해 Contest 객체를 Map으로 변환
   Map<String, dynamic> toMap() {

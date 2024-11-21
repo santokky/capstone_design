@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
+import '../utils/http_contest.dart';
+
 class ContestForm extends StatefulWidget {
   final Function(
       String imageUrl,
@@ -240,21 +242,46 @@ class _ContestFormState extends State<ContestForm> {
                   contactController.text.isNotEmpty &&
                   selectedCategory != null &&
                   selectedActivityType != null) {
-                widget.onSubmit(
-                  _selectedImage!.path,
-                  titleController.text,
-                  organizerController.text,
-                  descriptionController.text,
-                  locationController.text,
-                  applicationStartDate!,
-                  applicationEndDate!,
-                  startDate!,
-                  endDate!,
-                  applicationLinkController.text,
-                  contactController.text,
-                  selectedCategory!,
-                  selectedActivityType!,
-                );
+                final contestData = {
+                  'imageUrl': _selectedImage!.path,
+                  'title': titleController.text,
+                  'organizer': organizerController.text,
+                  'description': descriptionController.text,
+                  'location': locationController.text,
+                  'applicationStart': applicationStartDate!.toIso8601String(),
+                  'applicationEnd': applicationEndDate!.toIso8601String(),
+                  'startDate': startDate!.toIso8601String(),
+                  'endDate': endDate!.toIso8601String(),
+                  'applicationLink': applicationLinkController.text,
+                  'contact': contactController.text,
+                  'category': selectedCategory!,
+                  'activityType': selectedActivityType!,
+                };
+
+                // 서버로 데이터 전송
+                createContest(contestData).then((response) {
+                  if (response['statusCode'] == 201) {
+                    print('서버에 공모전 등록 성공');
+                    widget.onSubmit(
+                      _selectedImage!.path,
+                      titleController.text,
+                      organizerController.text,
+                      descriptionController.text,
+                      locationController.text,
+                      applicationStartDate!,
+                      applicationEndDate!,
+                      startDate!,
+                      endDate!,
+                      applicationLinkController.text,
+                      contactController.text,
+                      selectedCategory!,
+                      selectedActivityType!,
+                    );
+                    Navigator.of(context).pop();
+                  } else {
+                    print('서버 등록 실패: ${response['error']}');
+                  }
+                });
               }
             },
             child: const Text('공모전 추가'),
