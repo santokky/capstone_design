@@ -95,21 +95,13 @@ public class CompetitionController {
         }
     }
 
-
     @PostMapping("/upload")
-    public ResponseEntity<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<Map<String, String>> uploadImage(@RequestPart("file") MultipartFile file) {
         try {
-            File directory = new File(uploadDir);
-            if (!directory.exists()) {
-                directory.mkdirs();
-            }
-
-            String fileName = System.currentTimeMillis() + "-" + file.getOriginalFilename();
-            Path filePath = Paths.get(uploadDir, fileName);
-
-            Files.write(filePath, file.getBytes());
+            String fileName = imageHandler.saveImage(file, uploadDir);
 
             String fileUrl = imageBaseUrl + "/" + fileName;
+
             Map<String, String> response = new HashMap<>();
             response.put("imageUrl", fileUrl);
 
