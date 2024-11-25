@@ -80,17 +80,14 @@ public class CompetitionController {
     @PostMapping(path = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<CompetitionDTO> addCompetition(@ModelAttribute CompetitionFormDTO competitionFormDTO) {
         try {
-            // 이미지 저장 처리
             String imagePath = saveImageIfPresent(competitionFormDTO.getImage());
 
-            // DTO -> Entity 변환 및 저장
             Competition competition = mapFormDTOToEntity(competitionFormDTO, imagePath);
             Competition savedCompetition = competitionService.addCompetition(competition);
 
-            // 저장 결과 반환
             return ResponseEntity.status(HttpStatus.CREATED).body(new CompetitionDTO(savedCompetition, imageBaseUrl));
         } catch (IOException e) {
-            e.printStackTrace(); // 에러 로깅
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
@@ -98,23 +95,18 @@ public class CompetitionController {
     @PostMapping("/upload")
     public ResponseEntity<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file) {
         try {
-            // 디렉토리가 없으면 생성
             File directory = new File(uploadDir);
             if (!directory.exists()) {
                 directory.mkdirs();
             }
 
-            // 고유한 파일 이름 생성
             String fileName = System.currentTimeMillis() + "-" + file.getOriginalFilename();
             Path filePath = Paths.get(uploadDir, fileName);
 
-            // 파일 저장
             Files.write(filePath, file.getBytes());
 
-            // 저장된 파일 접근 URL 생성
-            String fileUrl = uploadDir + fileName;
+            String fileUrl = imageBaseUrl + fileName;
 
-            // 응답 반환
             Map<String, String> response = new HashMap<>();
             response.put("imageUrl", fileUrl);
             return ResponseEntity.ok(response);
