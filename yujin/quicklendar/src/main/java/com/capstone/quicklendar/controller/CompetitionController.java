@@ -98,13 +98,20 @@ public class CompetitionController {
     @PostMapping("/upload")
     public ResponseEntity<Map<String, String>> uploadImage(@RequestPart("file") MultipartFile file) {
         try {
-            String fileName = imageHandler.saveImage(file, uploadDir);
+            File directory = new File(uploadDir);
+            if (!directory.exists()) {
+                directory.mkdirs();
+            }
+
+            String fileName = System.currentTimeMillis() + "-" + file.getOriginalFilename();
+            Path filePath = Paths.get(uploadDir, fileName);
+
+            file.transferTo(filePath.toFile());
 
             String fileUrl = imageBaseUrl + "/" + fileName;
 
             Map<String, String> response = new HashMap<>();
             response.put("imageUrl", fileUrl);
-
             return ResponseEntity.ok(response);
         } catch (IOException e) {
             e.printStackTrace();
