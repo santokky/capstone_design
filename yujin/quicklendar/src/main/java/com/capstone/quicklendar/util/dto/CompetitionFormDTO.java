@@ -15,7 +15,7 @@ public class CompetitionFormDTO {
     private LocalDate requestEndDate;
     private String requestPath;
     private String location;
-    private MultipartFile image;  // MultipartFile을 여기에 받습니다.
+    private MultipartFile image;
     private String support;
     private String host;
     private Category category;

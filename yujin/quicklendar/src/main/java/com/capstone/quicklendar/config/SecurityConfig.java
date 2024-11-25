@@ -38,7 +38,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/", "/index", "/signup", "/login", "/join", "/resources/**", "/oauth2/**",
-                                "/competitions/**", "/images/**").permitAll()
+                                "/competitions/**", "/images/**", "/upload").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -57,7 +57,6 @@ public class SecurityConfig {
                         })
                 );
 
-        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

@@ -15,9 +15,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -32,7 +39,7 @@ public class CompetitionController {
     private String uploadDir;
 
     @Value("${image.base.url}")
-    private String imageBaseUrl; // 클라이언트가 접근 가능한 이미지 URL의 기본 경로
+    private String imageBaseUrl;
 
     @Autowired
     public CompetitionController(CompetitionService competitionService,
@@ -73,21 +80,76 @@ public class CompetitionController {
     @PostMapping(path = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<CompetitionDTO> addCompetition(@ModelAttribute CompetitionFormDTO competitionFormDTO) {
         try {
-            String imagePath = null;
-            if (competitionFormDTO.getImage() != null && !competitionFormDTO.getImage().isEmpty()) {
-                imagePath = imageHandler.saveImage(competitionFormDTO.getImage(), uploadDir);
-            }
+            // 이미지 저장 처리
+            String imagePath = saveImageIfPresent(competitionFormDTO.getImage());
 
-            Competition competition = new Competition();
-            BeanUtils.copyProperties(competitionFormDTO, competition);
-            competition.setImage(imagePath);
-
+            // DTO -> Entity 변환 및 저장
+            Competition competition = mapFormDTOToEntity(competitionFormDTO, imagePath);
             Competition savedCompetition = competitionService.addCompetition(competition);
 
+            // 저장 결과 반환
             return ResponseEntity.status(HttpStatus.CREATED).body(new CompetitionDTO(savedCompetition, imageBaseUrl));
         } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            e.printStackTrace(); // 에러 로깅
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
+    }
+
+    @PostMapping("/upload")
+    public ResponseEntity<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file) {
+        try {
+            // 디렉토리가 없으면 생성
+            File directory = new File(uploadDir);
+            if (!directory.exists()) {
+                directory.mkdirs();
+            }
+
+            // 고유한 파일 이름 생성
+            String fileName = System.currentTimeMillis() + "-" + file.getOriginalFilename();
+            Path filePath = Paths.get(uploadDir, fileName);
+
+            // 파일 저장
+            Files.write(filePath, file.getBytes());
+
+            // 저장된 파일 접근 URL 생성
+            String fileUrl = uploadDir + fileName;
+
+            // 응답 반환
+            Map<String, String> response = new HashMap<>();
+            response.put("imageUrl", fileUrl);
+            return ResponseEntity.ok(response);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    // 헬퍼 메서드: 이미지 저장 처리
+    private String saveImageIfPresent(MultipartFile imageFile) throws IOException {
+        if (imageFile != null && !imageFile.isEmpty()) {
+            return imageHandler.saveImage(imageFile, uploadDir);
+        }
+        return null;
+    }
+
+    // 헬퍼 메서드: DTO -> Entity 변환
+    private Competition mapFormDTOToEntity(CompetitionFormDTO dto, String imagePath) {
+        Competition competition = new Competition();
+        competition.setName(dto.getName());
+        competition.setDescription(dto.getDescription());
+        competition.setStartDate(dto.getStartDate());
+        competition.setEndDate(dto.getEndDate());
+        competition.setRequestStartDate(dto.getRequestStartDate());
+        competition.setRequestEndDate(dto.getRequestEndDate());
+        competition.setRequestPath(dto.getRequestPath());
+        competition.setLocation(dto.getLocation());
+        competition.setSupport(dto.getSupport());
+        competition.setHost(dto.getHost());
+        competition.setCategory(dto.getCategory());
+        competition.setCompetitionType(dto.getCompetitionType());
+        competition.setImage(imagePath);
+        return competition;
     }
 
     // 공모전 삭제
@@ -135,4 +197,5 @@ public class CompetitionController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
 }

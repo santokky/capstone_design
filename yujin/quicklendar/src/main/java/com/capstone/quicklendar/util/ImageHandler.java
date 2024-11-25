@@ -17,14 +17,13 @@ public class ImageHandler {
             Path uploadPath = Paths.get(uploadDir);
 
             if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);  // 디렉터리 없으면 생성
+                Files.createDirectories(uploadPath);
             }
 
-            Path filePath = uploadPath.resolve(fileName);  // 저장할 파일의 전체 경로
-            imageFile.transferTo(filePath.toFile());  // 파일 저장
+            Path filePath = uploadPath.resolve(fileName);
+            imageFile.transferTo(filePath.toFile());
 
-            // 경로를 반환
-            return "/images/" + fileName;  // 저장된 파일 경로 반환
+            return "/images/" + fileName;
         }
         return null;
     }
