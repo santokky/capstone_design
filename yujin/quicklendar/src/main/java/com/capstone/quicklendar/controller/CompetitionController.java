@@ -82,9 +82,9 @@ public class CompetitionController {
             @RequestPart("competition") CompetitionFormDTO competitionFormDTO,
             @RequestPart(value = "image", required = false) MultipartFile imageFile) {
         try {
-            String imagePath = saveImageIfPresent(imageFile);
+            String fileName = saveImageAndReturnOriginalFileName(imageFile);
 
-            Competition competition = mapFormDTOToEntity(competitionFormDTO, imagePath);
+            Competition competition = mapFormDTOToEntity(competitionFormDTO, fileName);
 
             Competition savedCompetition = competitionService.addCompetition(competition);
 
@@ -103,15 +103,13 @@ public class CompetitionController {
                 directory.mkdirs();
             }
 
-            String fileName = System.currentTimeMillis() + "-" + file.getOriginalFilename();
+            String fileName = file.getOriginalFilename();
             Path filePath = Paths.get(uploadDir, fileName);
 
             file.transferTo(filePath.toFile());
 
-            String fileUrl = imageBaseUrl + "/" + fileName;
-
             Map<String, String> response = new HashMap<>();
-            response.put("imageUrl", fileUrl);
+            response.put("imageUrl", fileName);
             return ResponseEntity.ok(response);
         } catch (IOException e) {
             e.printStackTrace();
@@ -134,6 +132,24 @@ public class CompetitionController {
             return filePath.toString();
         }
         return null;
+    }
+
+    // 헬퍼 메서드: 이미지 저장 및 원본 파일 이름 반환
+    private String saveImageAndReturnOriginalFileName(MultipartFile imageFile) throws IOException {
+        if (imageFile != null && !imageFile.isEmpty()) {
+            File directory = new File(uploadDir);
+            if (!directory.exists()) {
+                directory.mkdirs();
+            }
+
+            String fileName = imageFile.getOriginalFilename(); // 원본 파일 이름
+            Path filePath = Paths.get(uploadDir, fileName);
+
+            // 이미지 저장
+            imageFile.transferTo(filePath.toFile());
+            return fileName; // 원본 파일 이름 반환
+        }
+        return null; // 이미지가 없으면 null 반환
     }
 
     // DTO -> Entity 변환 메서드
