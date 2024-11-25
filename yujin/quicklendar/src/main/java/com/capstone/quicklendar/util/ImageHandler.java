@@ -5,7 +5,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -13,7 +12,6 @@ import java.nio.file.Paths;
 public class ImageHandler {
     public String saveImage(MultipartFile imageFile, String uploadDir) throws IOException {
         if (!imageFile.isEmpty()) {
-            // 저장 디렉토리 생성
             File directory = new File(uploadDir);
             if (!directory.exists()) {
                 directory.mkdirs();

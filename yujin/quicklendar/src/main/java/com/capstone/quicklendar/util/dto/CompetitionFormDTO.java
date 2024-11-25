@@ -2,7 +2,6 @@ package com.capstone.quicklendar.util.dto;
 
 import com.capstone.quicklendar.domain.competition.Category;
 import com.capstone.quicklendar.domain.competition.CompetitionType;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 

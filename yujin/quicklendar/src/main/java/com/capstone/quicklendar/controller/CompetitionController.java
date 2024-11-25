@@ -3,23 +3,18 @@ package com.capstone.quicklendar.controller;
 import com.capstone.quicklendar.domain.competition.Category;
 import com.capstone.quicklendar.domain.competition.Competition;
 import com.capstone.quicklendar.domain.competition.CompetitionType;
-import com.capstone.quicklendar.service.competition.CompetitionLikeService;
 import com.capstone.quicklendar.service.competition.CompetitionService;
 import com.capstone.quicklendar.util.dto.CompetitionDTO;
 import com.capstone.quicklendar.util.dto.CompetitionFormDTO;
-import com.capstone.quicklendar.util.ImageHandler;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -32,8 +27,6 @@ import java.util.stream.Collectors;
 public class CompetitionController {
 
     private final CompetitionService competitionService;
-    private final CompetitionLikeService competitionLikeService;
-    private final ImageHandler imageHandler;
 
     @Value("${image.upload.dir}")
     private String uploadDir;
@@ -42,12 +35,8 @@ public class CompetitionController {
     private String imageBaseUrl;
 
     @Autowired
-    public CompetitionController(CompetitionService competitionService,
-                                 CompetitionLikeService competitionLikeService,
-                                 ImageHandler imageHandler) {
+    public CompetitionController(CompetitionService competitionService) {
         this.competitionService = competitionService;
-        this.competitionLikeService = competitionLikeService;
-        this.imageHandler = imageHandler;
     }
 
     // 공모전 목록 조회
@@ -95,6 +84,7 @@ public class CompetitionController {
         }
     }
 
+    // 공모전 이미지 저장
     @PostMapping("/upload")
     public ResponseEntity<Map<String, String>> uploadImage(@RequestPart("file") MultipartFile file) {
         try {
@@ -117,23 +107,6 @@ public class CompetitionController {
         }
     }
 
-    // 이미지 저장 헬퍼 메서드
-    private String saveImageIfPresent(MultipartFile imageFile) throws IOException {
-        if (imageFile != null && !imageFile.isEmpty()) {
-            File directory = new File(uploadDir);
-            if (!directory.exists()) {
-                directory.mkdirs();
-            }
-
-            String fileName = System.currentTimeMillis() + "-" + imageFile.getOriginalFilename();
-            Path filePath = Paths.get(uploadDir, fileName);
-            imageFile.transferTo(filePath.toFile());
-
-            return filePath.toString();
-        }
-        return null;
-    }
-
     // 헬퍼 메서드: 이미지 저장 및 원본 파일 이름 반환
     private String saveImageAndReturnOriginalFileName(MultipartFile imageFile) throws IOException {
         if (imageFile != null && !imageFile.isEmpty()) {
@@ -142,17 +115,16 @@ public class CompetitionController {
                 directory.mkdirs();
             }
 
-            String fileName = imageFile.getOriginalFilename(); // 원본 파일 이름
+            String fileName = imageFile.getOriginalFilename();
             Path filePath = Paths.get(uploadDir, fileName);
 
-            // 이미지 저장
             imageFile.transferTo(filePath.toFile());
-            return fileName; // 원본 파일 이름 반환
+            return fileName;
         }
-        return null; // 이미지가 없으면 null 반환
+        return null;
     }
 
-    // DTO -> Entity 변환 메서드
+    // 헬퍼 메서드: DTO -> Entity 변환
     private Competition mapFormDTOToEntity(CompetitionFormDTO dto, String imagePath) {
         Competition competition = new Competition();
         competition.setName(dto.getName());
@@ -167,7 +139,7 @@ public class CompetitionController {
         competition.setHost(dto.getHost());
         competition.setCategory(dto.getCategory());
         competition.setCompetitionType(dto.getCompetitionType());
-        competition.setImage(imagePath); // 이미지 경로 설정
+        competition.setImage(imagePath);
         return competition;
     }
 
@@ -177,26 +149,4 @@ public class CompetitionController {
         competitionService.deleteCompetition(id);
         return ResponseEntity.noContent().build();
     }
-
-    // 좋아요 추가
-    @PostMapping("/{id}/likes")
-    public ResponseEntity<Void> likeCompetition(@PathVariable Long id, @RequestParam String userEmail) {
-        competitionLikeService.likeCompetition(id, userEmail);
-        return ResponseEntity.ok().build();
-    }
-
-    // 좋아요 취소
-    @DeleteMapping("/{id}/likes")
-    public ResponseEntity<Void> unlikeCompetition(@PathVariable Long id, @RequestParam String userEmail) {
-        competitionLikeService.unlikeCompetition(id, userEmail);
-        return ResponseEntity.noContent().build();
-    }
-
-    // 좋아요 여부 확인
-    @GetMapping("/{id}/likes")
-    public ResponseEntity<Boolean> isLiked(@PathVariable Long id, @RequestParam String userEmail) {
-        boolean liked = competitionLikeService.isLiked(id, userEmail);
-        return ResponseEntity.ok(liked);
-    }
-
 }

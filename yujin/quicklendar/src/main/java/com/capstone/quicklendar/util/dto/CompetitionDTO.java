@@ -21,7 +21,7 @@ public class CompetitionDTO {
     private String host;
     private Category category;
     private CompetitionType competitionType;
-    private int likeCount; // 좋아요 수
+    private int likeCount;
 
     public CompetitionDTO(Competition competition, String imageBaseUrl) {
         this.id = competition.getId();
@@ -33,7 +33,7 @@ public class CompetitionDTO {
         this.requestEndDate = competition.getRequestEndDate();
         this.requestPath = competition.getRequestPath();
         this.location = competition.getLocation();
-        this.imageUrl = imageBaseUrl + competition.getImage(); // 이미지 경로를 URL로 변환
+        this.imageUrl = imageBaseUrl + competition.getImage();
         this.support = competition.getSupport();
         this.host = competition.getHost();
         this.category = competition.getCategory();
