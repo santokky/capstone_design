@@ -78,11 +78,14 @@ public class CompetitionController {
 
     // 공모전 등록
     @PostMapping(path = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<CompetitionDTO> addCompetition(@ModelAttribute CompetitionFormDTO competitionFormDTO) {
+    public ResponseEntity<CompetitionDTO> addCompetition(
+            @RequestPart("competition") CompetitionFormDTO competitionFormDTO,
+            @RequestPart(value = "image", required = false) MultipartFile imageFile) {
         try {
-            String imagePath = saveImageIfPresent(competitionFormDTO.getImage());
+            String imagePath = saveImageIfPresent(imageFile);
 
             Competition competition = mapFormDTOToEntity(competitionFormDTO, imagePath);
+
             Competition savedCompetition = competitionService.addCompetition(competition);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(new CompetitionDTO(savedCompetition, imageBaseUrl));
@@ -91,6 +94,7 @@ public class CompetitionController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
+
 
     @PostMapping("/upload")
     public ResponseEntity<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file) {
