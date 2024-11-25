@@ -105,12 +105,11 @@ public class CompetitionController {
 
             Files.write(filePath, file.getBytes());
 
-            String fileUrl = imageBaseUrl + fileName;
-
+            String fileUrl = imageBaseUrl + "/" + fileName;
             Map<String, String> response = new HashMap<>();
             response.put("imageUrl", fileUrl);
-            return ResponseEntity.ok(response);
 
+            return ResponseEntity.ok(response);
         } catch (IOException e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
