@@ -15,11 +15,13 @@ public class CompetitionFormDTO {
     private LocalDate requestEndDate;
     private String requestPath;
     private String location;
-    private MultipartFile image;
     private String support;
     private String host;
     private Category category;
     private CompetitionType competitionType;
+
+    public CompetitionFormDTO() {
+    }
 
     // Getters and Setters
 
@@ -85,14 +87,6 @@ public class CompetitionFormDTO {
 
     public void setLocation(String location) {
         this.location = location;
-    }
-
-    public MultipartFile getImage() {
-        return image;
-    }
-
-    public void setImage(MultipartFile image) {
-        this.image = image;
     }
 
     public String getSupport() {

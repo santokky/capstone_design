@@ -44,8 +44,7 @@ public class CompetitionService {
     }
 
     // 공모전 등록
-    public CompetitionDTO addCompetition(CompetitionFormDTO competitionFormDTO) throws IOException {
-        String savedImagePath = imageHandler.saveImage(competitionFormDTO.getImage(), uploadDir);
+    public CompetitionDTO addCompetition(CompetitionFormDTO competitionFormDTO, String imagePath) {
 
         Competition competition = new Competition();
         competition.setName(competitionFormDTO.getName());
@@ -60,9 +59,10 @@ public class CompetitionService {
         competition.setHost(competitionFormDTO.getHost());
         competition.setCategory(competitionFormDTO.getCategory());
         competition.setCompetitionType(competitionFormDTO.getCompetitionType());
-        competition.setImage(savedImagePath);
+        competition.setImage(imagePath);
 
         competitionRepository.save(competition);
+
         return new CompetitionDTO(competition, imageBaseUrl);
     }
 

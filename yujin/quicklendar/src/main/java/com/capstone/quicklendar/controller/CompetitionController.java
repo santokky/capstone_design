@@ -77,7 +77,7 @@ public class CompetitionController {
     }
 
     // 공모전 등록
-    @PostMapping(path = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(path = "/register")
     public ResponseEntity<CompetitionDTO> addCompetition(
             @RequestPart("competition") CompetitionFormDTO competitionFormDTO,
             @RequestPart(value = "image", required = false) MultipartFile imageFile) {
@@ -119,15 +119,24 @@ public class CompetitionController {
         }
     }
 
-    // 헬퍼 메서드: 이미지 저장 처리
+    // 이미지 저장 헬퍼 메서드
     private String saveImageIfPresent(MultipartFile imageFile) throws IOException {
         if (imageFile != null && !imageFile.isEmpty()) {
-            return imageHandler.saveImage(imageFile, uploadDir);
+            File directory = new File(uploadDir);
+            if (!directory.exists()) {
+                directory.mkdirs();
+            }
+
+            String fileName = System.currentTimeMillis() + "-" + imageFile.getOriginalFilename();
+            Path filePath = Paths.get(uploadDir, fileName);
+            imageFile.transferTo(filePath.toFile());
+
+            return filePath.toString();
         }
         return null;
     }
 
-    // 헬퍼 메서드: DTO -> Entity 변환
+    // DTO -> Entity 변환 메서드
     private Competition mapFormDTOToEntity(CompetitionFormDTO dto, String imagePath) {
         Competition competition = new Competition();
         competition.setName(dto.getName());
@@ -142,7 +151,7 @@ public class CompetitionController {
         competition.setHost(dto.getHost());
         competition.setCategory(dto.getCategory());
         competition.setCompetitionType(dto.getCompetitionType());
-        competition.setImage(imagePath);
+        competition.setImage(imagePath); // 이미지 경로 설정
         return competition;
     }
 
@@ -172,24 +181,6 @@ public class CompetitionController {
     public ResponseEntity<Boolean> isLiked(@PathVariable Long id, @RequestParam String userEmail) {
         boolean liked = competitionLikeService.isLiked(id, userEmail);
         return ResponseEntity.ok(liked);
-    }
-
-    // 공모전 수정
-    @PutMapping("/update/{id}")
-    public ResponseEntity<CompetitionDTO> updateCompetition(
-            @PathVariable Long id,
-            @ModelAttribute CompetitionFormDTO competitionFormDTO) {
-        try {
-            String imagePath = null;
-            if (competitionFormDTO.getImage() != null && !competitionFormDTO.getImage().isEmpty()) {
-                imagePath = imageHandler.saveImage(competitionFormDTO.getImage(), uploadDir);
-            }
-
-            Competition updatedCompetition = competitionService.updateCompetition(id, competitionFormDTO, imagePath);
-            return ResponseEntity.ok(new CompetitionDTO(updatedCompetition, imageBaseUrl));
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
     }
 
 }
