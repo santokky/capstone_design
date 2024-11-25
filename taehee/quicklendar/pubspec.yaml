@@ -146,6 +146,7 @@ flutter:
     - assets/img/ocr_image.png
     - assets/img/ssafy.png
     - assets/img/435687.png
+    - assets/img/img.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

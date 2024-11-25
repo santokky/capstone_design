@@ -299,12 +299,24 @@ class _ContestScreenState extends State<ContestScreen> with SingleTickerProvider
       List<Contest> localContests = await ContestDatabase.instance.readAllContests();
 
       for (var contest in localContests) {
-        if (contest.id == null) {
-          // 로컬에서만 있는 공모전이면 서버에 생성
-          await createContest(contest.toJson());
+        // `imageFile` 값이 있는지 확인
+        if (contest.imageFile != null && contest.imageFile!.isNotEmpty) {
+          final imageFile = File(contest.imageFile!);
+
+          if (imageFile.existsSync()) {
+            // 로컬에만 있는 공모전이면 서버에 생성
+            final response = await createContestWithImage(contest.toJson(), imageFile);
+
+            if (response['statusCode'] == 201) {
+              print("서버로 공모전 업로드 성공: ${contest.title}");
+            } else {
+              print("공모전 업로드 실패: ${contest.title}, Error: ${response['error']}");
+            }
+          } else {
+            print("이미지 파일이 존재하지 않음: ${contest.imageFile}");
+          }
         } else {
-          // 서버에도 있는 경우 업데이트
-          //await updateContest(contest.id!, contest.toJson());
+          print("공모전 이미지 파일 경로가 누락됨: ${contest.title}");
         }
       }
 

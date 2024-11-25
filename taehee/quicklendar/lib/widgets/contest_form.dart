@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-
 import '../utils/http_contest.dart';
 
 class ContestForm extends StatefulWidget {
@@ -18,9 +17,8 @@ class ContestForm extends StatefulWidget {
       DateTime endDate,
       String applicationLink,
       String contact,
-      String category, // 카테고리 추가
-      String activityType // 활동 분야 추가
-      ) onSubmit;
+      String category,
+      String activityType) onSubmit;
 
   const ContestForm({Key? key, required this.onSubmit}) : super(key: key);
 
@@ -42,8 +40,22 @@ class _ContestFormState extends State<ContestForm> {
   DateTime? endDate;
   File? _selectedImage;
 
-  String? selectedCategory = "예술 및 디자인 분야";  // 기본 카테고리 설정
-  String? selectedActivityType = "공모전";  // 기본 활동 분야 설정
+  String? selectedCategory = "예술 및 디자인 분야"; // 기본 카테고리 설정
+  String? selectedActivityType = "공모전"; // 기본 활동 분야 설정
+
+  // 카테고리 및 활동 분야 매핑
+  final Map<String, String> categoryMapping = {
+    "예술 및 디자인 분야": "CREATIVE_ARTS_AND_DESIGN",
+    "기술 및 공학": "TECHNOLOGY_AND_ENGINEERING",
+    "기타": "BUSINESS_AND_ACADEMIC", // '기타'를 매핑
+  };
+
+// 활동 분야 매핑
+  final Map<String, String> activityTypeMapping = {
+    "공모전": "COMPETITION",
+    "대외활동": "ACTIVITY",
+  };
+
 
   final List<String> categories = ["예술 및 디자인 분야", "기술 및 공학", "기타"];
   final List<String> activityTypes = ["공모전", "대외활동"];
@@ -54,7 +66,7 @@ class _ContestFormState extends State<ContestForm> {
     final XFile? pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
-        _selectedImage = File(pickedFile.path); // 선택한 이미지를 저장
+        _selectedImage = File(pickedFile.path);
       });
     }
   }
@@ -227,6 +239,9 @@ class _ContestFormState extends State<ContestForm> {
           const SizedBox(height: 16),
 
           // 제출 버튼
+          // ... 기존 코드 생략 ...
+
+// 제출 버튼
           ElevatedButton(
             onPressed: () {
               if (_selectedImage != null &&
@@ -244,22 +259,22 @@ class _ContestFormState extends State<ContestForm> {
                   selectedActivityType != null) {
                 final contestData = {
                   'imageUrl': _selectedImage!.path,
-                  'title': titleController.text,
-                  'organizer': organizerController.text,
+                  'name': titleController.text,
+                  'host': organizerController.text,
                   'description': descriptionController.text,
                   'location': locationController.text,
-                  'applicationStart': applicationStartDate!.toIso8601String(),
-                  'applicationEnd': applicationEndDate!.toIso8601String(),
+                  'requestStartDate': applicationStartDate!.toIso8601String(),
+                  'requestEndDate': applicationEndDate!.toIso8601String(),
                   'startDate': startDate!.toIso8601String(),
                   'endDate': endDate!.toIso8601String(),
-                  'applicationLink': applicationLinkController.text,
-                  'contact': contactController.text,
-                  'category': selectedCategory!,
-                  'activityType': selectedActivityType!,
+                  'requestPath': applicationLinkController.text,
+                  'support': contactController.text,
+                  'category': categoryMapping[selectedCategory]!, // 카테고리 매핑
+                  'competitionType': activityTypeMapping[selectedActivityType]!, // 활동 분야 매핑 (COMPETITION or ACTIVITY)
                 };
 
                 // 서버로 데이터 전송
-                createContest(contestData).then((response) {
+                createContestWithImage(contestData, _selectedImage!).then((response) {
                   if (response['statusCode'] == 201) {
                     print('서버에 공모전 등록 성공');
                     widget.onSubmit(
@@ -282,10 +297,13 @@ class _ContestFormState extends State<ContestForm> {
                     print('서버 등록 실패: ${response['error']}');
                   }
                 });
+              } else {
+                print('입력되지 않은 필드가 있습니다.');
               }
             },
             child: const Text('공모전 추가'),
           ),
+
         ],
       ),
     );
