@@ -53,12 +53,12 @@ class _UserGuideScreenState extends State<UserGuideScreen> {
                         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       ),
                       onPressed: details.onStepContinue,
-                      child: const Text('Continue'),
+                      child: const Text('다음'),
                     ),
                     const SizedBox(width: 8),
                     TextButton(
                       onPressed: details.onStepCancel,
-                      child: const Text('Cancel'),
+                      child: const Text('이전'),
                     ),
                   ],
                 );
